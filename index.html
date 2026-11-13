@@ -1,0 +1,2021 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LC Cuber - Virtual Cube & WCA Timer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #060913;
+            color: #f8fafc;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-variant-numeric: tabular-nums;
+        }
+        /* Custom slim scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.4);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(71, 85, 105, 0.6);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 0.9);
+        }
+        .panel-card {
+            background: rgba(13, 19, 34, 0.88);
+            border: 1px solid rgba(30, 41, 59, 0.9);
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+        }
+        /* 2D Scramble Net Grid */
+        .net-face {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 1.5px;
+            background-color: #000;
+            padding: 1.5px;
+            border-radius: 2px;
+        }
+        .net-sticker {
+            width: 100%;
+            height: 100%;
+            border-radius: 1px;
+        }
+        kbd {
+            font-family: 'JetBrains Mono', monospace;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-bottom-width: 2px;
+            border-radius: 4px;
+            padding: 1px 5px;
+            font-size: 0.72rem;
+            color: #e2e8f0;
+        }
+        /* Reliable 15s Inspection Toggle Switch */
+        .toggle-track {
+            width: 36px;
+            height: 20px;
+            background-color: #334155;
+            border-radius: 9999px;
+            position: relative;
+            transition: background-color 0.2s ease;
+            flex-shrink: 0;
+        }
+        .toggle-thumb {
+            width: 16px;
+            height: 16px;
+            background-color: #ffffff;
+            border-radius: 9999px;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+        }
+        input:checked + .toggle-track {
+            background-color: #10b981;
+        }
+        input:checked + .toggle-track .toggle-thumb {
+            transform: translateX(16px);
+        }
+        /* Giant centered timer digits when in Timer Mode */
+        .timer-digits-3d {
+            font-size: clamp(3rem, 5vw, 4.5rem);
+        }
+        .timer-digits-stackmat {
+            font-size: clamp(5.5rem, 14vw, 11rem);
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen w-screen overflow-hidden">
+
+    <!-- TOP NAVIGATION HEADER -->
+    <header class="h-14 shrink-0 px-4 border-b border-slate-800/80 bg-[#080c17] flex items-center justify-between z-30">
+        <!-- Brand Logo -->
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-slate-900 border border-slate-700/80 p-1.5 grid grid-cols-2 gap-1 shadow-inner">
+                <span class="rounded-[2px] bg-[#ffd500]"></span>
+                <span class="rounded-[2px] bg-[#0051ba]"></span>
+                <span class="rounded-[2px] bg-[#ff5800]"></span>
+                <span class="rounded-[2px] bg-[#c41e3a]"></span>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="font-extrabold text-base tracking-tight text-white">LC Cuber</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/30">WCA 3x3</span>
+                </div>
+                <p class="text-[11px] text-slate-400 leading-none mt-0.5">Virtual Cube &amp; WCA Timer</p>
+            </div>
+        </div>
+
+        <!-- Mode Switcher (3D Cube vs Timer Mode) -->
+        <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800">
+            <button id="mode3dBtn" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/>
+                </svg>
+                3D Cube
+            </button>
+            <button id="modeTimerBtn" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-white">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                    <circle cx="12" cy="13" r="8"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4l2.5 2.5M9 2h6"/>
+                </svg>
+                Timer Mode
+            </button>
+        </div>
+
+        <!-- Right Controls: 15s Inspection Toggle & Keymap Modal Button -->
+        <div class="flex items-center gap-2.5">
+            <label class="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 cursor-pointer hover:border-slate-700 transition">
+                <span class="text-xs font-medium text-slate-300">15s Inspection</span>
+                <input id="inspectionToggle" type="checkbox" checked class="sr-only">
+                <div class="toggle-track">
+                    <div class="toggle-thumb"></div>
+                </div>
+            </label>
+
+            <button id="openKeymapBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-200 transition">
+                <svg class="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/>
+                </svg>
+                Keymap
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN TWO-COLUMN WORKSPACE -->
+    <main class="flex-1 flex gap-3 p-3 overflow-hidden min-h-0">
+
+        <!-- LEFT COLUMN: SESSION MANAGER, STATISTICS & SOLVE HISTORY -->
+        <aside class="w-72 sm:w-80 shrink-0 flex flex-col gap-3 min-h-0">
+            
+            <!-- SESSION STATISTICS CARD -->
+            <div class="panel-card rounded-2xl p-3.5 flex flex-col gap-2.5 shrink-0">
+                <!-- Session Manager Header -->
+                <div class="flex flex-col gap-2 pb-2.5 border-b border-slate-800/90">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Session</span>
+                        <div class="flex items-center gap-1">
+                            <button id="btnNewSession" title="Create New Session" class="px-2 py-0.5 rounded bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 text-[10px] font-bold transition">+ New</button>
+                            <button id="btnRenameSession" title="Rename Current Session" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] font-semibold transition">Rename</button>
+                            <button id="btnDeleteSession" title="Delete Current Session" class="px-2 py-0.5 rounded bg-rose-500/15 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 text-[10px] font-semibold transition">Delete</button>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <select id="sessionSelect" class="w-full bg-slate-900/95 border border-slate-700/90 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white focus:outline-none focus:border-blue-500 transition">
+                        </select>
+                        <span id="solveCountBadge" class="shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-slate-800/90 text-slate-300 border border-slate-700/70 mono">0 solves</span>
+                    </div>
+                </div>
+
+                <!-- Statistics Table -->
+                <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">
+                    <span>Metric</span>
+                    <div class="flex items-center gap-6">
+                        <span class="w-14 text-right">Current</span>
+                        <span class="w-14 text-right text-amber-400">Best</span>
+                    </div>
+                </div>
+
+                <div class="divide-y divide-slate-800/60 text-xs">
+                    <div class="py-1.5 px-1 flex items-center justify-between">
+                        <span class="font-semibold text-slate-300">Single</span>
+                        <div class="flex items-center gap-6 mono">
+                            <span id="statSingleCur" class="w-14 text-right text-slate-200">-</span>
+                            <span id="statSingleBest" class="w-14 text-right font-bold text-amber-400">-</span>
+                        </div>
+                    </div>
+                    <div class="py-1.5 px-1 flex items-center justify-between">
+                        <span class="font-semibold text-slate-300">Ao5</span>
+                        <div class="flex items-center gap-6 mono">
+                            <span id="statAo5Cur" class="w-14 text-right text-slate-200">-</span>
+                            <span id="statAo5Best" class="w-14 text-right font-bold text-amber-400">-</span>
+                        </div>
+                    </div>
+                    <div class="py-1.5 px-1 flex items-center justify-between">
+                        <span class="font-semibold text-slate-300">Ao12</span>
+                        <div class="flex items-center gap-6 mono">
+                            <span id="statAo12Cur" class="w-14 text-right text-slate-200">-</span>
+                            <span id="statAo12Best" class="w-14 text-right font-bold text-amber-400">-</span>
+                        </div>
+                    </div>
+                    <div class="py-1.5 px-1 flex items-center justify-between">
+                        <span class="font-semibold text-slate-300">Ao50</span>
+                        <div class="flex items-center gap-6 mono">
+                            <span id="statAo50Cur" class="w-14 text-right text-slate-200">-</span>
+                            <span id="statAo50Best" class="w-14 text-right font-bold text-amber-400">-</span>
+                        </div>
+                    </div>
+                    <div class="py-1.5 px-1 flex items-center justify-between">
+                        <span class="font-semibold text-slate-300">Ao100</span>
+                        <div class="flex items-center gap-6 mono">
+                            <span id="statAo100Cur" class="w-14 text-right text-slate-200">-</span>
+                            <span id="statAo100Best" class="w-14 text-right font-bold text-amber-400">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SOLVE HISTORY CARD -->
+            <div class="panel-card rounded-2xl p-3.5 flex-1 flex flex-col min-h-0">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Solve History</span>
+                    <button id="clearHistoryBtn" class="text-[11px] font-semibold text-rose-400 hover:text-rose-300 transition">Clear All</button>
+                </div>
+                <p class="text-[10px] text-slate-500 mb-2.5">Click any solve to inspect scramble, TPS or edit</p>
+
+                <div id="solveListContainer" class="flex-1 overflow-y-auto space-y-1.5 pr-1">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- RIGHT COLUMN: MAIN STAGE (SCRAMBLE, TIMER, 3D CUBE / 2D NET, FLOATING CARDS) -->
+        <section class="flex-1 panel-card rounded-2xl relative flex flex-col items-center justify-between p-4 overflow-hidden min-w-0">
+
+            <!-- TOP SCRAMBLE BAR -->
+            <div class="w-full max-w-4xl bg-slate-950/75 border border-slate-800/90 rounded-2xl px-4 py-2.5 flex items-center justify-between gap-4 z-20 shrink-0">
+                <div class="flex-1 text-center">
+                    <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">
+                        WCA SCRAMBLE &bull; WHITE TOP &bull; GREEN FRONT
+                    </div>
+                    <div id="scrambleText" class="mono text-sm sm:text-base md:text-lg font-bold text-amber-400 tracking-wide leading-snug break-words">
+                        Generating scramble...
+                    </div>
+                </div>
+                <button id="newScrambleBtn" title="Generate New Scramble" class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-slate-300 hover:text-white transition shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- TIMER READOUT & STATUS PILL -->
+            <div id="timerBlock" class="flex flex-col items-center justify-center z-20 mt-1 shrink-0 transition-all">
+                <div id="statusPill" class="px-3.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest border bg-slate-900/90 border-slate-700 text-slate-300 mb-1 transition-colors">
+                    CUBE RESET TO SOLVED (WHITE TOP, GREEN FRONT)
+                </div>
+
+                <div id="timerDisplay" class="mono font-extrabold timer-digits-3d tracking-tight text-white leading-none select-none transition-colors">
+                    0.00
+                </div>
+
+                <div id="liveMetricsRow" class="flex items-center gap-3 text-xs text-slate-400 mt-1.5 mono">
+                    <span>Moves: <strong id="liveMoves" class="text-white">0</strong></span>
+                    <span>&bull;</span>
+                    <span>TPS: <strong id="liveTps" class="text-white">0.00</strong></span>
+                </div>
+
+                <!-- Post-solve summary banner (shown when a solve finishes) -->
+                <div id="lastSolveBanner" class="hidden mt-2 px-3.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs mono">
+                </div>
+
+                <!-- Timer Mode Spacebar Instructions (Shown directly below big timer in Timer Mode) -->
+                <div id="timerModeOverlay" class="hidden mt-6 pointer-events-none">
+                    <div class="bg-slate-900/80 border border-slate-800/90 px-5 py-3 rounded-2xl text-center max-w-md shadow-xl">
+                        <p class="text-xs sm:text-sm font-semibold text-slate-200 mb-1">
+                            Hold <kbd>SPACE</kbd> until green, release to start.
+                        </p>
+                        <p class="text-[11px] text-slate-400">
+                            With 15s Inspection enabled: Press <kbd>SPACE</kbd> once to begin inspection, then hold &amp; release <kbd>SPACE</kbd> to start solving. Press any key to stop.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CENTER INTERACTIVE STAGE (3D CUBE CANVAS & FLOATING CARDS) -->
+            <div id="stageWrapper" class="relative flex-1 w-full flex items-center justify-center min-h-0 my-1">
+                <!-- 3D Cube Canvas (Always fills 100% of stageWrapper without inline pixel locks) -->
+                <canvas id="cubeCanvas" class="absolute inset-0 w-full h-full block cursor-grab active:cursor-grabbing"></canvas>
+
+                <!-- FLOATING RIGHT CARDS: LIVE AVERAGES & 2D SCRAMBLE NET -->
+                <div class="hidden lg:flex flex-col items-end gap-2.5 absolute right-1 bottom-1 z-20 pointer-events-auto">
+                    <!-- Live Averages Card -->
+                    <div class="bg-slate-950/85 border border-slate-800/90 rounded-xl px-3.5 py-2.5 text-right shadow-lg backdrop-blur-sm">
+                        <div class="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-1">LIVE AVERAGES</div>
+                        <div class="space-y-0.5 mono text-xs">
+                            <div class="text-slate-400">ao5: <span id="floatAo5" class="text-blue-400 font-semibold">-</span></div>
+                            <div class="text-slate-400">ao12: <span id="floatAo12" class="text-blue-400 font-semibold">-</span></div>
+                            <div class="text-slate-400">ao50: <span id="floatAo50" class="text-blue-400 font-semibold">-</span></div>
+                            <div class="text-slate-400">ao100: <span id="floatAo100" class="text-blue-400 font-semibold">-</span></div>
+                        </div>
+                    </div>
+
+                    <!-- 2D Scramble Net Card -->
+                    <div class="bg-slate-950/85 border border-slate-800/90 rounded-2xl p-3 shadow-lg backdrop-blur-sm flex flex-col items-center">
+                        <div class="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                            SCRAMBLE NET (U=WHITE, F=GREEN)
+                        </div>
+                        <div id="scrambleNetGrid" class="grid grid-cols-4 grid-rows-3 gap-1" style="width: 148px; height: 110px;">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOTTOM BAR: CAMERA HINT LEFT & ACTION BUTTONS CENTER -->
+            <div class="w-full flex flex-wrap items-center justify-between gap-2 pt-1 z-30 shrink-0 relative">
+                <!-- Left Reset View & Controls Hint -->
+                <div id="cubeControlsHint" class="flex items-center gap-1.5">
+                    <button id="btnResetView" type="button" class="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 active:scale-95 border border-slate-700/80 text-[11px] font-semibold text-slate-200 flex items-center gap-1.5 transition cursor-pointer pointer-events-auto shadow">
+                        <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                        Reset View
+                    </button>
+                    <span class="hidden xl:inline-block px-2.5 py-1 rounded-lg bg-slate-900/70 border border-slate-800/80 text-[10px] text-slate-400">
+                        Left-drag sticker: Twist &bull; Middle/Right-drag: Rotate Cube &bull; Scroll wheel: Zoom
+                    </span>
+                </div>
+
+                <!-- Center Primary Action Buttons -->
+                <div class="flex items-center gap-2.5 mx-auto sm:mx-0">
+                    <button id="btnScrambleStart" type="button" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 transition cursor-pointer">
+                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+                        </svg>
+                        Scramble &amp; Start
+                    </button>
+                    <button id="btnResetCube" type="button" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-700 text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        Reset Cube
+                    </button>
+                    <button id="btnMarkDnf" type="button" class="px-3.5 py-2 rounded-xl bg-rose-950/80 hover:bg-rose-900/80 active:scale-95 border border-rose-700/60 text-rose-300 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        DNF
+                    </button>
+                </div>
+
+                <!-- Right Balance Spacer for desktop alignment -->
+                <div class="hidden xl:block w-48"></div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- KEYMAP MODAL -->
+    <div id="keymapModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="panel-card rounded-2xl max-w-2xl w-full p-5 border border-slate-700 shadow-2xl">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div>
+                    <h3 class="text-base font-bold text-white">csTimer.net Keyboard Controls</h3>
+                    <p class="text-xs text-slate-400">Standard speedcubing virtual cube key bindings</p>
+                </div>
+                <button id="closeKeymapBtn" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 my-4 text-xs">
+                <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-1.5">
+                    <div class="font-bold text-blue-400 uppercase text-[10px] tracking-wider mb-2">Outer Face Turns</div>
+                    <div class="flex justify-between"><span>U / U'</span><span><kbd>J</kbd> / <kbd>F</kbd></span></div>
+                    <div class="flex justify-between"><span>R / R'</span><span><kbd>I</kbd> / <kbd>K</kbd></span></div>
+                    <div class="flex justify-between"><span>F / F'</span><span><kbd>H</kbd> / <kbd>G</kbd></span></div>
+                    <div class="flex justify-between"><span>D / D'</span><span><kbd>S</kbd> / <kbd>L</kbd></span></div>
+                    <div class="flex justify-between"><span>L / L'</span><span><kbd>D</kbd> / <kbd>E</kbd></span></div>
+                    <div class="flex justify-between"><span>B / B'</span><span><kbd>W</kbd> / <kbd>O</kbd></span></div>
+                </div>
+
+                <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-1.5">
+                    <div class="font-bold text-emerald-400 uppercase text-[10px] tracking-wider mb-2">Cube Rotations</div>
+                    <div class="flex justify-between"><span>x (R-axis)</span><span><kbd>R</kbd> or <kbd>Y</kbd></span></div>
+                    <div class="flex justify-between"><span>x' (L-axis)</span><span><kbd>V</kbd> or <kbd>N</kbd></span></div>
+                    <div class="flex justify-between"><span>y (U-axis)</span><span><kbd>;</kbd> / <kbd>Ö</kbd></span></div>
+                    <div class="flex justify-between"><span>y' (U'-axis)</span><span><kbd>A</kbd></span></div>
+                    <div class="flex justify-between"><span>z (F-axis)</span><span><kbd>P</kbd></span></div>
+                    <div class="flex justify-between"><span>z' (F'-axis)</span><span><kbd>Q</kbd></span></div>
+                </div>
+
+                <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-1.5">
+                    <div class="font-bold text-amber-400 uppercase text-[10px] tracking-wider mb-2">Wide &amp; Slice Moves</div>
+                    <div class="flex justify-between"><span>Rw / Rw'</span><span><kbd>U</kbd> / <kbd>M</kbd></span></div>
+                    <div class="flex justify-between"><span>Lw / Lw'</span><span><kbd>C</kbd> / <kbd>R</kbd></span></div>
+                    <div class="flex justify-between"><span>Uw / Uw'</span><span><kbd>,</kbd> / <kbd>X</kbd></span></div>
+                    <div class="flex justify-between"><span>M'</span><span><kbd>5</kbd> or <kbd>6</kbd></span></div>
+                    <div class="flex justify-between"><span>M</span><span><kbd>B</kbd> or <kbd>.</kbd></span></div>
+                    <div class="flex justify-between"><span>Start / Inspect</span><span><kbd>SPACE</kbd></span></div>
+                </div>
+            </div>
+
+            <div class="flex justify-end">
+                <button id="closeKeymapFooterBtn" class="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white">Got it</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SOLVE DETAILS / EDIT MODAL -->
+    <div id="solveDetailModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="panel-card rounded-2xl max-w-md w-full p-5 border border-slate-700 shadow-2xl">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div>
+                    <h3 id="modalSolveTitle" class="text-base font-bold text-white">Solve #1</h3>
+                    <p id="modalSolveDate" class="text-[11px] text-slate-400"></p>
+                </div>
+                <button id="closeSolveModalBtn" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="my-4 space-y-3">
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5">
+                        <div class="text-[10px] uppercase text-slate-400 font-bold">Time</div>
+                        <div id="modalSolveTime" class="mono text-lg font-extrabold text-emerald-400 mt-0.5">0.00</div>
+                    </div>
+                    <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5">
+                        <div class="text-[10px] uppercase text-slate-400 font-bold">Moves</div>
+                        <div id="modalSolveMoves" class="mono text-lg font-bold text-white mt-0.5">0</div>
+                    </div>
+                    <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5">
+                        <div class="text-[10px] uppercase text-slate-400 font-bold">TPS</div>
+                        <div id="modalSolveTps" class="mono text-lg font-bold text-blue-400 mt-0.5">0.00</div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+                    <div class="text-[10px] uppercase text-slate-400 font-bold mb-1">Scramble</div>
+                    <div id="modalSolveScramble" class="mono text-xs text-amber-300 break-words select-all"></div>
+                </div>
+
+                <div class="flex items-center justify-between gap-2 pt-1">
+                    <span class="text-xs font-semibold text-slate-300">Penalty:</span>
+                    <div class="flex items-center gap-1.5">
+                        <button id="modalPenaltyOk" class="px-3 py-1 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800 text-white">OK</button>
+                        <button id="modalPenaltyPlus2" class="px-3 py-1 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800 text-amber-400">+2</button>
+                        <button id="modalPenaltyDnf" class="px-3 py-1 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800 text-rose-400">DNF</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-3 border-t border-slate-800">
+                <button id="modalDeleteSolveBtn" class="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 text-rose-300 text-xs font-bold">
+                    Delete Solve
+                </button>
+                <div class="flex items-center gap-2">
+                    <button id="modalRetryScrambleBtn" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold">
+                        Load Scramble
+                    </button>
+                    <button id="modalCloseFooterBtn" class="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold">
+                        Done
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SESSION CREATE / RENAME / DELETE MODAL (NO BROWSER ALERT/PROMPT) -->
+    <div id="sessionModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="panel-card rounded-2xl max-w-sm w-full p-5 border border-slate-700 shadow-2xl">
+            <h3 id="sessionModalTitle" class="text-base font-bold text-white mb-1">New Session</h3>
+            <p id="sessionModalDesc" class="text-xs text-slate-400 mb-3">Enter a name for your session:</p>
+
+            <input id="sessionNameInput" type="text" maxlength="32" placeholder="e.g. 3x3 Main Practice" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 mb-4" />
+
+            <div class="flex justify-end gap-2">
+                <button id="sessionModalCancel" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300">Cancel</button>
+                <button id="sessionModalConfirm" class="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ============================================================================
+         * 1. COLOR SCHEME (WCA Standard: White Top, Green Front, Orange Left, Red Right, Blue Back, Yellow Down)
+         * ============================================================================
+         */
+        const FACE_COLORS = {
+            U: '#ffffff', // White  (Top: +Y)
+            D: '#ffd500', // Yellow (Bottom: -Y)
+            F: '#009e60', // Green  (Front: +Z)
+            B: '#0051ba', // Blue   (Back: -Z)
+            L: '#ff5800', // Orange (Left: -X)
+            R: '#c41e3a'  // Red    (Right: +X)
+        };
+
+        /**
+         * ============================================================================
+         * 2. 3D VIRTUAL CUBE ENGINE (csTimer Perspective + Painter's Algorithm)
+         * ============================================================================
+         */
+        const canvas = document.getElementById('cubeCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Default camera angle: yaw = 0 (horizontally dead-on), pitch = 45° (looking at U-F ridge)
+        const DEFAULT_YAW = 0;
+        const DEFAULT_PITCH = Math.PI / 4; // 45 deg
+        const DEFAULT_ZOOM = 1.0;
+
+        let camYaw = DEFAULT_YAW;
+        let camPitch = DEFAULT_PITCH;
+        let userZoom = DEFAULT_ZOOM;
+        const CAM_DIST = 10.5;
+
+        let cubies = [];
+        let activeAnim = null;
+        let moveQueue = [];
+        let renderedPolygons = []; // Cached each frame for mouse raycasting
+
+        function initSolvedCube() {
+            cubies = [];
+            for (let x = -1; x <= 1; x++) {
+                for (let y = -1; y <= 1; y++) {
+                    for (let z = -1; z <= 1; z++) {
+                        const stickers = [];
+                        if (y === 1)  stickers.push({ n: [0, 1, 0],  u: [1, 0, 0], v: [0, 0, 1], color: FACE_COLORS.U, face: 'U' });
+                        if (y === -1) stickers.push({ n: [0, -1, 0], u: [1, 0, 0], v: [0, 0, 1], color: FACE_COLORS.D, face: 'D' });
+                        if (z === 1)  stickers.push({ n: [0, 0, 1],  u: [1, 0, 0], v: [0, 1, 0], color: FACE_COLORS.F, face: 'F' });
+                        if (z === -1) stickers.push({ n: [0, 0, -1], u: [1, 0, 0], v: [0, 1, 0], color: FACE_COLORS.B, face: 'B' });
+                        if (x === -1) stickers.push({ n: [-1, 0, 0], u: [0, 0, 1], v: [0, 1, 0], color: FACE_COLORS.L, face: 'L' });
+                        if (x === 1)  stickers.push({ n: [1, 0, 0],  u: [0, 0, 1], v: [0, 1, 0], color: FACE_COLORS.R, face: 'R' });
+                        cubies.push({ pos: [x, y, z], stickers });
+                    }
+                }
+            }
+            moveQueue = [];
+            activeAnim = null;
+            update2DScrambleNet();
+        }
+
+        function rotateVec3(v, axis, angleRad) {
+            const [x, y, z] = v;
+            const c = Math.cos(angleRad);
+            const s = Math.sin(angleRad);
+            if (axis === 'x') return [x, y * c - z * s, y * s + z * c];
+            if (axis === 'y') return [x * c + z * s, y, -x * s + z * c];
+            if (axis === 'z') return [x * c - y * s, x * s + y * c, z];
+            return [x, y, z];
+        }
+
+        function snapVec(v) {
+            return [Math.round(v[0]), Math.round(v[1]), Math.round(v[2])];
+        }
+
+        // Parse standard WCA / csTimer move notation into axis, layer filter, and angle
+        function getMoveSpec(notation) {
+            const base = notation.replace(/['2]/g, '');
+            const isPrime = notation.includes("'");
+            const isDouble = notation.includes('2');
+            let mult = isPrime ? -1 : 1;
+            if (isDouble) mult *= 2;
+
+            // Right-hand rule angles around +X, +Y, +Z
+            switch (base) {
+                case 'U': return { axis: 'y', layers: [1],  angle: -Math.PI / 2 * mult, isRotation: false };
+                case 'D': return { axis: 'y', layers: [-1], angle:  Math.PI / 2 * mult, isRotation: false };
+                case 'R': return { axis: 'x', layers: [1],  angle: -Math.PI / 2 * mult, isRotation: false };
+                case 'L': return { axis: 'x', layers: [-1], angle:  Math.PI / 2 * mult, isRotation: false };
+                case 'F': return { axis: 'z', layers: [1],  angle: -Math.PI / 2 * mult, isRotation: false };
+                case 'B': return { axis: 'z', layers: [-1], angle:  Math.PI / 2 * mult, isRotation: false };
+                // Wide moves
+                case 'Uw': case 'u': return { axis: 'y', layers: [0, 1],  angle: -Math.PI / 2 * mult, isRotation: false };
+                case 'Dw': case 'd': return { axis: 'y', layers: [-1, 0], angle:  Math.PI / 2 * mult, isRotation: false };
+                case 'Rw': case 'r': return { axis: 'x', layers: [0, 1],  angle: -Math.PI / 2 * mult, isRotation: false };
+                case 'Lw': case 'l': return { axis: 'x', layers: [-1, 0], angle:  Math.PI / 2 * mult, isRotation: false };
+                case 'Fw': case 'f': return { axis: 'z', layers: [0, 1],  angle: -Math.PI / 2 * mult, isRotation: false };
+                case 'Bw': case 'b': return { axis: 'z', layers: [-1, 0], angle:  Math.PI / 2 * mult, isRotation: false };
+                // Slice moves
+                case 'M': return { axis: 'x', layers: [0], angle:  Math.PI / 2 * mult, isRotation: false };
+                case 'E': return { axis: 'y', layers: [0], angle:  Math.PI / 2 * mult, isRotation: false };
+                case 'S': return { axis: 'z', layers: [0], angle: -Math.PI / 2 * mult, isRotation: false };
+                // Whole-cube rotations
+                case 'x': return { axis: 'x', layers: [-1, 0, 1], angle: -Math.PI / 2 * mult, isRotation: true };
+                case 'y': return { axis: 'y', layers: [-1, 0, 1], angle: -Math.PI / 2 * mult, isRotation: true };
+                case 'z': return { axis: 'z', layers: [-1, 0, 1], angle: -Math.PI / 2 * mult, isRotation: true };
+                default: return null;
+            }
+        }
+
+        function applyMoveInstant(notation) {
+            const spec = getMoveSpec(notation);
+            if (!spec) return;
+            const axisIdx = spec.axis === 'x' ? 0 : spec.axis === 'y' ? 1 : 2;
+            for (const c of cubies) {
+                if (spec.layers.includes(c.pos[axisIdx])) {
+                    c.pos = snapVec(rotateVec3(c.pos, spec.axis, spec.angle));
+                    for (const s of c.stickers) {
+                        s.n = snapVec(rotateVec3(s.n, spec.axis, spec.angle));
+                        s.u = snapVec(rotateVec3(s.u, spec.axis, spec.angle));
+                        s.v = snapVec(rotateVec3(s.v, spec.axis, spec.angle));
+                    }
+                }
+            }
+        }
+
+        // Check if the cube is solved (each of the 6 world directions has uniform sticker colors)
+        function isCubeSolved() {
+            const dirs = [
+                [0, 1, 0], [0, -1, 0],
+                [0, 0, 1], [0, 0, -1],
+                [-1, 0, 0], [1, 0, 0]
+            ];
+            for (const d of dirs) {
+                let firstColor = null;
+                for (const c of cubies) {
+                    for (const s of c.stickers) {
+                        if (s.n[0] === d[0] && s.n[1] === d[1] && s.n[2] === d[2]) {
+                            if (!firstColor) firstColor = s.color;
+                            else if (firstColor !== s.color) return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
+        function enqueueUserMove(notation) {
+            const spec = getMoveSpec(notation);
+            if (!spec) return;
+
+            // If we are in inspection or ready after scramble, a face/slice move starts the timer!
+            if (appMode === '3d') {
+                if (!spec.isRotation) {
+                    if (timerState === 'inspecting' || timerState === 'ready_scrambled') {
+                        beginSolving();
+                    }
+                    if (timerState === 'solving') {
+                        moveCount++;
+                        updateLiveMetricsUI();
+                    }
+                }
+            }
+
+            moveQueue.push({ spec, notation });
+        }
+
+        function worldToCamera(pt) {
+            // 1. Rotate around Y by camYaw
+            const cy = Math.cos(camYaw), sy = Math.sin(camYaw);
+            const x1 = pt[0] * cy + pt[2] * sy;
+            const y1 = pt[1];
+            const z1 = -pt[0] * sy + pt[2] * cy;
+
+            // 2. Rotate around X by camPitch (positive pitch tilts top towards viewer)
+            const cp = Math.cos(camPitch), sp = Math.sin(camPitch);
+            const x2 = x1;
+            const y2 = y1 * cp - z1 * sp;
+            const z2 = y1 * sp + z1 * cp;
+
+            return [x2, y2, z2];
+        }
+
+        function projectPoint(camPt, width, height) {
+            // Default cube size is 50% larger than the previous 0.76 scale (0.76 * 1.5 = 1.14), multiplied by userZoom
+            const baseScale = Math.min(width, height) * 1.14 * userZoom;
+            const depth = CAM_DIST - camPt[2];
+            const factor = ( baseScale * 1.75 ) / Math.max(depth, 1.5);
+            return [
+                width / 2 + camPt[0] * factor,
+                height / 2 - camPt[1] * factor,
+                depth
+            ];
+        }
+
+        function render3DCube(now) {
+            if (appMode !== '3d') return;
+            const wrapper = document.getElementById('stageWrapper');
+            if (!wrapper) return;
+            const rect = wrapper.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            const w = rect.width;
+            const h = rect.height;
+            if (w <= 0 || h <= 0) return;
+
+            if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+                canvas.width = Math.round(w * dpr);
+                canvas.height = Math.round(h * dpr);
+            }
+
+            ctx.save();
+            ctx.scale(dpr, dpr);
+            ctx.clearRect(0, 0, w, h);
+
+            // Process animation queue
+            if (!activeAnim && moveQueue.length > 0) {
+                const next = moveQueue.shift();
+                activeAnim = {
+                    spec: next.spec,
+                    notation: next.notation,
+                    startTime: now,
+                    duration: moveQueue.length > 2 ? 55 : 85
+                };
+            }
+
+            let animProgress = 0;
+            if (activeAnim) {
+                animProgress = (now - activeAnim.startTime) / activeAnim.duration;
+                if (animProgress >= 1) {
+                    applyMoveInstant(activeAnim.notation);
+                    activeAnim = null;
+                    animProgress = 0;
+                    update2DScrambleNet();
+
+                    // Check if cube just became solved while timer is running
+                    if (appMode === '3d' && timerState === 'solving' && moveQueue.length === 0 && isCubeSolved()) {
+                        finishSolve();
+                    }
+                }
+            }
+
+            const stickerHalf = 0.455; // Leaves crisp dark gaps between stickers like csTimer
+            const faceOffset = 1.52;   // Distance from origin to sticker plane
+            const polys = [];
+
+            for (const c of cubies) {
+                let isAnimating = false;
+                let curAngle = 0;
+                let animAxis = null;
+
+                if (activeAnim) {
+                    const axisIdx = activeAnim.spec.axis === 'x' ? 0 : activeAnim.spec.axis === 'y' ? 1 : 2;
+                    if (activeAnim.spec.layers.includes(c.pos[axisIdx])) {
+                        isAnimating = true;
+                        const eased = 1 - Math.pow(1 - animProgress, 3);
+                        curAngle = activeAnim.spec.angle * eased;
+                        animAxis = activeAnim.spec.axis;
+                    }
+                }
+
+                for (const s of c.stickers) {
+                    // Compute 4 corners in world space
+                    const center = [
+                        c.pos[0] + s.n[0] * (faceOffset - 1.0),
+                        c.pos[1] + s.n[1] * (faceOffset - 1.0),
+                        c.pos[2] + s.n[2] * (faceOffset - 1.0)
+                    ];
+
+                    const corners = [
+                        [-stickerHalf, -stickerHalf],
+                        [ stickerHalf, -stickerHalf],
+                        [ stickerHalf,  stickerHalf],
+                        [-stickerHalf,  stickerHalf]
+                    ].map(([du, dv]) => {
+                        let pt = [
+                            center[0] + s.u[0] * du + s.v[0] * dv,
+                            center[1] + s.u[1] * du + s.v[1] * dv,
+                            center[2] + s.u[2] * du + s.v[2] * dv
+                        ];
+                        if (isAnimating) {
+                            pt = rotateVec3(pt, animAxis, curAngle);
+                        }
+                        return worldToCamera(pt);
+                    });
+
+                    let normWorld = s.n;
+                    let centerWorld = center;
+                    if (isAnimating) {
+                        normWorld = rotateVec3(normWorld, animAxis, curAngle);
+                        centerWorld = rotateVec3(centerWorld, animAxis, curAngle);
+                    }
+                    const normCam = worldToCamera(normWorld);
+                    const centerCam = worldToCamera(centerWorld);
+
+                    const screenPts = corners.map(pt => projectPoint(pt, w, h));
+                    const avgDepth = (screenPts[0][2] + screenPts[1][2] + screenPts[2][2] + screenPts[3][2]) / 4;
+
+                    // Front-facing vs back-facing classification for Painter's Algorithm
+                    const isFrontFacing = normCam[2] > -0.05;
+
+                    polys.push({
+                        screenPts,
+                        avgDepth,
+                        isFrontFacing,
+                        color: s.color,
+                        cubiePos: [...c.pos],
+                        normalWorld: [...s.n],
+                        uWorld: [...s.u],
+                        vWorld: [...s.v],
+                        centerCam
+                    });
+                }
+            }
+
+            // Sort back-to-front: back-facing stickers always drawn first, then sorted by depth descending
+            polys.sort((a, b) => {
+                if (a.isFrontFacing !== b.isFrontFacing) {
+                    return a.isFrontFacing ? 1 : -1;
+                }
+                return b.avgDepth - a.avgDepth;
+            });
+
+            renderedPolygons = polys;
+
+            // Draw all polygons with crisp black outlines like csTimer
+            ctx.lineJoin = 'round';
+            for (const poly of polys) {
+                ctx.beginPath();
+                ctx.moveTo(poly.screenPts[0][0], poly.screenPts[0][1]);
+                for (let i = 1; i < 4; i++) {
+                    ctx.lineTo(poly.screenPts[i][0], poly.screenPts[i][1]);
+                }
+                ctx.closePath();
+
+                ctx.fillStyle = poly.color;
+                ctx.fill();
+                ctx.lineWidth = poly.isFrontFacing ? 2.2 : 1.6;
+                ctx.strokeStyle = '#05070e';
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+
+        /**
+         * ============================================================================
+         * 3. 2D SCRAMBLE NET RENDERING (U=Yellow, L=Orange, F=Blue, R=Red, B=Green, D=White)
+         * ============================================================================
+         */
+        function getStickerColorAt(pos, normal) {
+            for (const c of cubies) {
+                if (c.pos[0] === pos[0] && c.pos[1] === pos[1] && c.pos[2] === pos[2]) {
+                    for (const s of c.stickers) {
+                        if (s.n[0] === normal[0] && s.n[1] === normal[1] && s.n[2] === normal[2]) {
+                            return s.color;
+                        }
+                    }
+                }
+            }
+            return '#334155';
+        }
+
+        function buildFaceGridHTML(face) {
+            const colors = [];
+            if (face === 'U') {
+                for (let z = -1; z <= 1; z++)
+                    for (let x = -1; x <= 1; x++)
+                        colors.push(getStickerColorAt([x, 1, z], [0, 1, 0]));
+            } else if (face === 'F') {
+                for (let y = 1; y >= -1; y--)
+                    for (let x = -1; x <= 1; x++)
+                        colors.push(getStickerColorAt([x, y, 1], [0, 0, 1]));
+            } else if (face === 'D') {
+                for (let z = 1; z >= -1; z--)
+                    for (let x = -1; x <= 1; x++)
+                        colors.push(getStickerColorAt([x, -1, z], [0, -1, 0]));
+            } else if (face === 'L') {
+                for (let y = 1; y >= -1; y--)
+                    for (let z = -1; z <= 1; z++)
+                        colors.push(getStickerColorAt([-1, y, z], [-1, 0, 0]));
+            } else if (face === 'R') {
+                for (let y = 1; y >= -1; y--)
+                    for (let z = 1; z >= -1; z--)
+                        colors.push(getStickerColorAt([1, y, z], [1, 0, 0]));
+            } else if (face === 'B') {
+                for (let y = 1; y >= -1; y--)
+                    for (let x = 1; x >= -1; x--)
+                        colors.push(getStickerColorAt([x, y, -1], [0, 0, -1]));
+            }
+
+            return `<div class="net-face">${colors.map(c => `<div class="net-sticker" style="background:${c}"></div>`).join('')}</div>`;
+        }
+
+        function update2DScrambleNet() {
+            const grid = document.getElementById('scrambleNetGrid');
+            if (!grid) return;
+            grid.innerHTML = `
+                <div></div>${buildFaceGridHTML('U')}<div></div><div></div>
+                ${buildFaceGridHTML('L')}${buildFaceGridHTML('F')}${buildFaceGridHTML('R')}${buildFaceGridHTML('B')}
+                <div></div>${buildFaceGridHTML('D')}<div></div><div></div>
+            `;
+        }
+
+        /**
+         * ============================================================================
+         * 4. MOUSE INTERACTION (Left-Drag Sticker Twist, Middle/Right-Click Orbit, Scroll Zoom)
+         * ============================================================================
+         */
+        let dragState = null;
+
+        function pointInPoly(px, py, pts) {
+            let inside = false;
+            for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+                const xi = pts[i][0], yi = pts[i][1];
+                const xj = pts[j][0], yj = pts[j][1];
+                const intersect = ((yi > py) !== (yj > py)) &&
+                    (px < (xj - xi) * (py - yi) / ((yj - yi) || 1e-7) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        }
+
+        function pickSticker(mx, my) {
+            // Check from front-most drawn polygon to back-most
+            for (let i = renderedPolygons.length - 1; i >= 0; i--) {
+                const poly = renderedPolygons[i];
+                if (!poly.isFrontFacing) continue;
+                if (pointInPoly(mx, my, poly.screenPts)) {
+                    return poly;
+                }
+            }
+            return null;
+        }
+
+        canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+        // Scroll Wheel Zoom on 3D Cube Canvas
+        canvas.addEventListener('wheel', (e) => {
+            if (appMode !== '3d') return;
+            e.preventDefault();
+            const zoomStep = -e.deltaY * 0.0012;
+            userZoom = Math.max(0.45, Math.min(2.2, userZoom + zoomStep));
+        }, { passive: false });
+
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+
+            // Middle-click (scroll wheel click, button === 1) or Right-click (button === 2) ALWAYS orbits the camera
+            if (e.button === 1 || e.button === 2) {
+                e.preventDefault();
+                dragState = {
+                    type: 'orbit',
+                    startX: e.clientX,
+                    startY: e.clientY,
+                    startYaw: camYaw,
+                    startPitch: camPitch
+                };
+                return;
+            }
+
+            if (e.button === 0) {
+                const hit = pickSticker(mx, my);
+                if (hit) {
+                    dragState = {
+                        type: 'twist',
+                        startX: e.clientX,
+                        startY: e.clientY,
+                        hit,
+                        triggered: false
+                    };
+                } else {
+                    dragState = {
+                        type: 'orbit',
+                        startX: e.clientX,
+                        startY: e.clientY,
+                        startYaw: camYaw,
+                        startPitch: camPitch
+                    };
+                }
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!dragState) return;
+            const dx = e.clientX - dragState.startX;
+            const dy = e.clientY - dragState.startY;
+
+            if (dragState.type === 'orbit') {
+                // Direct natural rotation: dragging right rotates cube right, dragging down tilts cube down
+                camYaw = dragState.startYaw + dx * 0.0075;
+                camPitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, dragState.startPitch + dy * 0.0075));
+            } else if (dragState.type === 'twist' && !dragState.triggered) {
+                const dist = Math.hypot(dx, dy);
+                if (dist > 14) {
+                    dragState.triggered = true;
+                    triggerDragSliceTurn(dragState.hit, dx, dy);
+                }
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            dragState = null;
+        });
+
+        function triggerDragSliceTurn(hit, dx, dy) {
+            // Project local tangent vectors uWorld and vWorld onto screen to determine drag axis
+            const uCam = worldToCamera(hit.uWorld);
+            const vCam = worldToCamera(hit.vWorld);
+            const uScreen = [uCam[0], -uCam[1]];
+            const vScreen = [vCam[0], -vCam[1]];
+
+            const dotU = (dx * uScreen[0] + dy * uScreen[1]) / (Math.hypot(uScreen[0], uScreen[1]) || 1);
+            const dotV = (dx * vScreen[0] + dy * vScreen[1]) / (Math.hypot(vScreen[0], vScreen[1]) || 1);
+
+            let moveDirWorld, sign;
+            if (Math.abs(dotU) > Math.abs(dotV)) {
+                moveDirWorld = hit.uWorld;
+                sign = Math.sign(dotU);
+            } else {
+                moveDirWorld = hit.vWorld;
+                sign = Math.sign(dotV);
+            }
+
+            // Rotation axis = normalWorld x moveDirWorld
+            const n = hit.normalWorld;
+            const m = [moveDirWorld[0] * sign, moveDirWorld[1] * sign, moveDirWorld[2] * sign];
+            const cross = [
+                n[1] * m[2] - n[2] * m[1],
+                n[2] * m[0] - n[0] * m[2],
+                n[0] * m[1] - n[1] * m[0]
+            ];
+
+            let axis = 'x', axisIdx = 0, rotSign = 1;
+            if (Math.abs(cross[0]) > 0.5) { axis = 'x'; axisIdx = 0; rotSign = Math.sign(cross[0]); }
+            else if (Math.abs(cross[1]) > 0.5) { axis = 'y'; axisIdx = 1; rotSign = Math.sign(cross[1]); }
+            else if (Math.abs(cross[2]) > 0.5) { axis = 'z'; axisIdx = 2; rotSign = Math.sign(cross[2]); }
+
+            const layer = hit.cubiePos[axisIdx];
+            let notation = null;
+
+            if (axis === 'y') {
+                if (layer === 1) notation = rotSign < 0 ? 'U' : "U'";
+                else if (layer === -1) notation = rotSign > 0 ? 'D' : "D'";
+                else notation = rotSign > 0 ? 'E' : "E'";
+            } else if (axis === 'x') {
+                if (layer === 1) notation = rotSign < 0 ? 'R' : "R'";
+                else if (layer === -1) notation = rotSign > 0 ? 'L' : "L'";
+                else notation = rotSign > 0 ? 'M' : "M'";
+            } else if (axis === 'z') {
+                if (layer === 1) notation = rotSign < 0 ? 'F' : "F'";
+                else if (layer === -1) notation = rotSign > 0 ? 'B' : "B'";
+                else notation = rotSign < 0 ? 'S' : "S'";
+            }
+
+            if (notation) {
+                enqueueUserMove(notation);
+            }
+        }
+
+        function resetCameraView() {
+            camYaw = DEFAULT_YAW;
+            camPitch = DEFAULT_PITCH;
+            userZoom = DEFAULT_ZOOM;
+            setStatusPill('VIEW RESET TO DEFAULT CSTIMER PERSPECTIVE', 'neutral');
+        }
+
+        document.getElementById('btnResetView').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            resetCameraView();
+            e.currentTarget.blur();
+        });
+
+        /**
+         * ============================================================================
+         * 5. WCA SCRAMBLE GENERATOR
+         * ============================================================================
+         */
+        let currentScramble = '';
+
+        function generateWcaScramble(length = 20) {
+            const faces = ['U', 'D', 'R', 'L', 'F', 'B'];
+            const axisGroup = { U: 0, D: 0, R: 1, L: 1, F: 2, B: 2 };
+            const modifiers = ['', "'", '2'];
+            const moves = [];
+            let lastFace = null;
+            let secondLastFace = null;
+
+            while (moves.length < length) {
+                const f = faces[Math.floor(Math.random() * faces.length)];
+                if (f === lastFace) continue;
+                if (lastFace && secondLastFace && axisGroup[f] === axisGroup[lastFace] && f === secondLastFace) continue;
+
+                const mod = modifiers[Math.floor(Math.random() * modifiers.length)];
+                moves.push(f + mod);
+                secondLastFace = lastFace;
+                lastFace = f;
+            }
+            return moves.join(' ');
+        }
+
+        function applyScrambleStringToCube(scrambleStr) {
+            initSolvedCube();
+            const tokens = scrambleStr.trim().split(/\s+/);
+            for (const t of tokens) {
+                if (t) applyMoveInstant(t);
+            }
+            update2DScrambleNet();
+        }
+
+        function loadNewScramble(applyTo3DCube = false) {
+            currentScramble = generateWcaScramble(20);
+            document.getElementById('scrambleText').textContent = currentScramble;
+            if (applyTo3DCube || appMode === 'timer') {
+                applyScrambleStringToCube(currentScramble);
+            }
+        }
+
+        /**
+         * ============================================================================
+         * 6. TIMER, 15s INSPECTION & VOICE ALERTS STATE MACHINE
+         * ============================================================================
+         */
+        let appMode = '3d'; // '3d' or 'timer'
+        let timerState = 'idle'; // 'idle' | 'ready_scrambled' | 'inspecting' | 'holding_space' | 'solving'
+        let inspectionEnabled = true;
+
+        let inspectionStartPerf = 0;
+        let inspectionInterval = null;
+        let inspectionPenalty = null; // null | '+2' | 'DNF'
+        let spoken8s = false;
+        let spoken12s = false;
+
+        let solveStartPerf = 0;
+        let solveRafId = null;
+        let moveCount = 0;
+
+        // Spacebar hold tracking for Timer Mode
+        let spaceHoldTimer = null;
+        let spaceReadyToStart = false;
+        let spaceTriggeredInspection = false;
+        let justStoppedSolve = false;
+
+        function speakAlert(text) {
+            try {
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                    const utter = new SpeechSynthesisUtterance(text);
+                    utter.lang = 'en-US';
+                    utter.rate = 1.08;
+                    window.speechSynthesis.speak(utter);
+                }
+            } catch (err) {
+                // Ignore speech errors on restricted browsers
+            }
+        }
+
+        function setStatusPill(text, variant = 'neutral') {
+            const pill = document.getElementById('statusPill');
+            pill.textContent = text;
+            pill.className = 'px-3.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest border mb-1 transition-colors ';
+            if (variant === 'amber') {
+                pill.className += 'bg-amber-500/15 border-amber-500/40 text-amber-300';
+            } else if (variant === 'green') {
+                pill.className += 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300';
+            } else if (variant === 'red') {
+                pill.className += 'bg-rose-500/15 border-rose-500/40 text-rose-300';
+            } else {
+                pill.className += 'bg-slate-900/90 border-slate-700 text-slate-300';
+            }
+        }
+
+        function setTimerDisplayColor(colorClass = 'text-white') {
+            const timerEl = document.getElementById('timerDisplay');
+            const sizeClass = appMode === 'timer' ? 'timer-digits-stackmat' : 'timer-digits-3d';
+            timerEl.className = `mono font-extrabold ${sizeClass} tracking-tight ${colorClass} leading-none select-none transition-colors`;
+        }
+
+        function formatTimeMs(ms, penalty = null) {
+            if (penalty === 'DNF' || ms === Infinity || ms === null || isNaN(ms)) return 'DNF';
+            const totalMs = Math.max(0, Math.round(ms));
+            const totalSeconds = totalMs / 1000;
+            const mins = Math.floor(totalSeconds / 60);
+            const secs = (totalSeconds % 60).toFixed(2);
+            const formatted = mins > 0 ? `${mins}:${secs.padStart(5, '0')}` : secs;
+            return penalty === '+2' ? `${formatted}+` : formatted;
+        }
+
+        function updateLiveMetricsUI(elapsedMs = 0) {
+            document.getElementById('liveMoves').textContent = moveCount;
+            const secs = elapsedMs / 1000;
+            const tps = secs > 0.05 ? (moveCount / secs).toFixed(2) : '0.00';
+            document.getElementById('liveTps').textContent = tps;
+        }
+
+        function stopAllTimers() {
+            if (inspectionInterval) {
+                clearInterval(inspectionInterval);
+                inspectionInterval = null;
+            }
+            if (solveRafId) {
+                cancelAnimationFrame(solveRafId);
+                solveRafId = null;
+            }
+            if (spaceHoldTimer) {
+                clearTimeout(spaceHoldTimer);
+                spaceHoldTimer = null;
+            }
+        }
+
+        function startInspectionPhase() {
+            stopAllTimers();
+            timerState = 'inspecting';
+            inspectionStartPerf = performance.now();
+            inspectionPenalty = null;
+            spoken8s = false;
+            spoken12s = false;
+            moveCount = 0;
+            updateLiveMetricsUI(0);
+            document.getElementById('lastSolveBanner').classList.add('hidden');
+
+            const timerEl = document.getElementById('timerDisplay');
+            setTimerDisplayColor('text-amber-400');
+            timerEl.textContent = '15';
+
+            setStatusPill(
+                appMode === '3d'
+                    ? 'INSPECTION (15S) — MAKE ANY MOVE TO START SOLVING'
+                    : 'INSPECTION (15S) — HOLD & RELEASE SPACE TO START',
+                'amber'
+            );
+
+            inspectionInterval = setInterval(() => {
+                const elapsedSec = (performance.now() - inspectionStartPerf) / 1000;
+                const remaining = Math.ceil(15 - elapsedSec);
+
+                if (elapsedSec >= 8 && !spoken8s) {
+                    spoken8s = true;
+                    speakAlert('eight seconds');
+                }
+                if (elapsedSec >= 12 && !spoken12s) {
+                    spoken12s = true;
+                    speakAlert('twelve seconds');
+                }
+
+                // If user is currently holding Space in Timer mode, keep green/amber color indicator updated
+                if (timerState === 'inspecting') {
+                    if (elapsedSec < 15) {
+                        timerEl.textContent = String(Math.max(1, remaining));
+                    } else if (elapsedSec < 17) {
+                        inspectionPenalty = '+2';
+                        timerEl.textContent = '+2';
+                        setTimerDisplayColor('text-orange-500');
+                        setStatusPill('INSPECTION EXCEEDED 15S (+2 PENALTY)', 'red');
+                    } else {
+                        inspectionPenalty = 'DNF';
+                        clearInterval(inspectionInterval);
+                        inspectionInterval = null;
+                        recordDNFAndReset('INSPECTION EXCEEDED 17S — AUTOMATIC DNF');
+                    }
+                }
+            }, 80);
+        }
+
+        function beginSolving() {
+            if (inspectionInterval) {
+                clearInterval(inspectionInterval);
+                inspectionInterval = null;
+            }
+            timerState = 'solving';
+            solveStartPerf = performance.now();
+            moveCount = 0;
+
+            const timerEl = document.getElementById('timerDisplay');
+            setTimerDisplayColor('text-white');
+            setStatusPill(
+                appMode === '3d' ? 'SOLVING — SOLVE THE CUBE!' : 'SOLVING — PRESS ANY KEY TO STOP',
+                'green'
+            );
+
+            function tickSolve(now) {
+                if (timerState !== 'solving') return;
+                const elapsed = now - solveStartPerf;
+                timerEl.textContent = formatTimeMs(elapsed);
+                updateLiveMetricsUI(elapsed);
+                solveRafId = requestAnimationFrame(tickSolve);
+            }
+            solveRafId = requestAnimationFrame(tickSolve);
+        }
+
+        function finishSolve(forcedPenalty = null) {
+            stopAllTimers();
+            const rawMs = Math.max(10, Math.round(performance.now() - solveStartPerf));
+            const finalPenalty = forcedPenalty || inspectionPenalty || null;
+            const effectiveMs = finalPenalty === '+2' ? rawMs + 2000 : rawMs;
+            const secs = effectiveMs / 1000;
+            const tps = moveCount > 0 && secs > 0 ? Number((moveCount / secs).toFixed(2)) : 0;
+
+            timerState = 'idle';
+            const timerEl = document.getElementById('timerDisplay');
+            timerEl.textContent = formatTimeMs(effectiveMs, finalPenalty);
+            setTimerDisplayColor(finalPenalty === 'DNF' ? 'text-rose-500' : 'text-emerald-400');
+
+            setStatusPill('SOLVE COMPLETE!', 'green');
+
+            const newSolve = {
+                id: Date.now() + Math.random().toString(36).slice(2, 6),
+                rawMs,
+                penalty: finalPenalty,
+                scramble: currentScramble,
+                moves: moveCount,
+                tps,
+                mode: appMode === '3d' ? '3D' : 'Timer',
+                timestamp: new Date().toLocaleString()
+            };
+
+            const session = getActiveSession();
+            session.solves.unshift(newSolve);
+            saveAllSessions();
+            renderStatsAndHistory();
+
+            // Show post-solve summary banner with Ao5/Ao12
+            const curAo5 = computeWcaAverage(session.solves.slice(0, 5), 5);
+            const curAo12 = computeWcaAverage(session.solves.slice(0, 12), 12);
+            const banner = document.getElementById('lastSolveBanner');
+            if (appMode === 'timer') {
+                banner.innerHTML = `Time: <strong>${formatTimeMs(effectiveMs, finalPenalty)}</strong> &bull; Ao5: <strong>${formatTimeMs(curAo5)}</strong> &bull; Ao12: <strong>${formatTimeMs(curAo12)}</strong>`;
+            } else {
+                banner.innerHTML = `Time: <strong>${formatTimeMs(effectiveMs, finalPenalty)}</strong> &bull; Moves: <strong>${moveCount}</strong> &bull; TPS: <strong>${tps.toFixed(2)}</strong> &bull; Ao5: <strong>${formatTimeMs(curAo5)}</strong> &bull; Ao12: <strong>${formatTimeMs(curAo12)}</strong>`;
+            }
+            banner.classList.remove('hidden');
+
+            // Generate next scramble automatically
+            if (appMode === 'timer') {
+                loadNewScramble(true);
+            } else {
+                currentScramble = generateWcaScramble(20);
+                document.getElementById('scrambleText').textContent = currentScramble;
+            }
+        }
+
+        function recordDNFAndReset(reasonText = 'SOLVE MARKED AS DNF') {
+            stopAllTimers();
+            const rawMs = timerState === 'solving' ? Math.round(performance.now() - solveStartPerf) : 0;
+            timerState = 'idle';
+
+            const timerEl = document.getElementById('timerDisplay');
+            timerEl.textContent = 'DNF';
+            setTimerDisplayColor('text-rose-500');
+            setStatusPill(reasonText, 'red');
+
+            const session = getActiveSession();
+            session.solves.unshift({
+                id: Date.now() + Math.random().toString(36).slice(2, 6),
+                rawMs,
+                penalty: 'DNF',
+                scramble: currentScramble,
+                moves: moveCount,
+                tps: 0,
+                mode: appMode === '3d' ? '3D' : 'Timer',
+                timestamp: new Date().toLocaleString()
+            });
+            saveAllSessions();
+            renderStatsAndHistory();
+        }
+
+        function triggerScrambleAndStart() {
+            stopAllTimers();
+            loadNewScramble(true);
+            moveCount = 0;
+            inspectionPenalty = null;
+            updateLiveMetricsUI(0);
+            document.getElementById('lastSolveBanner').classList.add('hidden');
+
+            if (inspectionEnabled) {
+                startInspectionPhase();
+            } else {
+                timerState = 'ready_scrambled';
+                const timerEl = document.getElementById('timerDisplay');
+                timerEl.textContent = '0.00';
+                setTimerDisplayColor('text-emerald-400');
+                setStatusPill('SCRAMBLED — MAKE FIRST MOVE TO START TIMER', 'green');
+            }
+        }
+
+        /**
+         * ============================================================================
+         * 7. KEYBOARD MAPPING (csTimer Layout + Timer Mode Spacebar State Machine)
+         * ============================================================================
+         */
+        const CSTIMER_KEYMAP_BY_CODE = {
+            KeyJ: 'U',      KeyF: "U'",
+            KeyI: 'R',      KeyK: "R'",
+            KeyH: 'F',      KeyG: "F'",
+            KeyS: 'D',      KeyL: "D'",
+            KeyD: 'L',      KeyE: "L'",
+            KeyW: 'B',      KeyO: "B'",
+            // Cube rotations (Semicolon / Swedish Ö = y, KeyA = y' in opposite direction)
+            Semicolon: 'y', KeyA: "y'",
+            KeyR: 'x',      KeyY: 'x',
+            KeyV: "x'",     KeyN: "x'",
+            KeyP: 'z',      KeyQ: "z'",
+            // Wide & Slice moves
+            KeyU: 'Rw',     KeyM: "Rw'",
+            KeyC: 'Lw',
+            Comma: 'Uw',    KeyX: "Uw'",
+            Digit5: "M'",   Digit6: "M'",
+            KeyB: 'M',      Period: 'M'
+        };
+
+        window.addEventListener('keydown', (e) => {
+            // Ignore shortcuts when typing in an input or when a modal is open
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+            if (!document.getElementById('sessionModal').classList.contains('hidden')) return;
+            if (!document.getElementById('solveDetailModal').classList.contains('hidden')) return;
+            if (!document.getElementById('keymapModal').classList.contains('hidden')) {
+                if (e.code === 'Escape') closeKeymapModal();
+                return;
+            }
+
+            // TIMER MODE KEY HANDLING
+            if (appMode === 'timer') {
+                if (timerState === 'solving') {
+                    e.preventDefault();
+                    justStoppedSolve = true;
+                    finishSolve();
+                    return;
+                }
+
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    if (e.repeat) return;
+
+                    // If idle and 15s inspection is enabled, first Space press starts 15s inspection
+                    if (timerState === 'idle' && inspectionEnabled) {
+                        spaceTriggeredInspection = true;
+                        startInspectionPhase();
+                        return;
+                    }
+
+                    // Otherwise (either during inspection or when inspection is off), holding Space prepares to start
+                    if (timerState === 'inspecting' || timerState === 'idle') {
+                        spaceReadyToStart = false;
+                        setTimerDisplayColor('text-amber-400');
+                        setStatusPill('HOLD SPACE...', 'amber');
+
+                        spaceHoldTimer = setTimeout(() => {
+                            spaceReadyToStart = true;
+                            setTimerDisplayColor('text-emerald-400');
+                            setStatusPill('READY — RELEASE SPACE TO START TIMER!', 'green');
+                        }, 280);
+                    }
+                }
+                return;
+            }
+
+            // 3D CUBE MODE KEY HANDLING
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (!e.repeat) {
+                    triggerScrambleAndStart();
+                }
+                return;
+            }
+
+            // Check physical key code first, with fallback for Swedish 'ö' key
+            let move = CSTIMER_KEYMAP_BY_CODE[e.code];
+            if (!move && (e.key === 'ö' || e.key === 'Ö' || e.key === ';')) {
+                move = 'y';
+            }
+
+            if (move) {
+                e.preventDefault();
+                enqueueUserMove(move);
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (appMode !== 'timer') return;
+            if (e.code !== 'Space') return;
+
+            if (justStoppedSolve) {
+                justStoppedSolve = false;
+                return;
+            }
+
+            if (spaceTriggeredInspection) {
+                spaceTriggeredInspection = false;
+                return;
+            }
+
+            if (spaceHoldTimer) {
+                clearTimeout(spaceHoldTimer);
+                spaceHoldTimer = null;
+            }
+
+            if (spaceReadyToStart) {
+                spaceReadyToStart = false;
+                beginSolving();
+            } else {
+                // Released Space too early before turning green
+                if (timerState === 'inspecting') {
+                    setTimerDisplayColor('text-amber-400');
+                    setStatusPill('INSPECTION — HOLD SPACE UNTIL GREEN TO START', 'amber');
+                } else {
+                    setTimerDisplayColor('text-white');
+                    setStatusPill('HOLD SPACE UNTIL GREEN TO START', 'neutral');
+                }
+            }
+        });
+
+        /**
+         * ============================================================================
+         * 8. MULTI-SESSION STORAGE & WCA STATISTICS (Single, Ao5, Ao12, Ao50, Ao100)
+         * ============================================================================
+         */
+        const STORAGE_KEY = 'lc_cuber_sessions_v2';
+        const LEGACY_KEY = 'lc_cuber_solves_v1';
+
+        let sessionsData = {
+            activeSessionId: 'default',
+            sessions: [
+                { id: 'default', name: 'Session 1', solves: [] }
+            ]
+        };
+
+        function loadAllSessions() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed && Array.isArray(parsed.sessions) && parsed.sessions.length > 0) {
+                        sessionsData = parsed;
+                        return;
+                    }
+                }
+                // Migrate legacy single-session solves if present
+                const legacyRaw = localStorage.getItem(LEGACY_KEY);
+                if (legacyRaw) {
+                    const legacySolves = JSON.parse(legacyRaw);
+                    if (Array.isArray(legacySolves)) {
+                        sessionsData.sessions[0].solves = legacySolves;
+                        saveAllSessions();
+                    }
+                }
+            } catch (err) {
+                // Ignore storage errors
+            }
+        }
+
+        function saveAllSessions() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionsData));
+            } catch (err) {
+                // Ignore storage errors
+            }
+        }
+
+        function getActiveSession() {
+            let s = sessionsData.sessions.find(x => x.id === sessionsData.activeSessionId);
+            if (!s) {
+                s = sessionsData.sessions[0];
+                sessionsData.activeSessionId = s.id;
+            }
+            return s;
+        }
+
+        function getEffectiveSolveMs(solve) {
+            if (!solve || solve.penalty === 'DNF') return Infinity;
+            return solve.penalty === '+2' ? solve.rawMs + 2000 : solve.rawMs;
+        }
+
+        // Standard WCA Average of N: trim top 5% (ceil(N*0.05), min 1) and bottom 5%
+        function computeWcaAverage(slice, n) {
+            if (!slice || slice.length < n) return null;
+            const windowSolves = slice.slice(0, n);
+            const trimCount = n >= 50 ? Math.ceil(n * 0.05) : 1;
+            const values = windowSolves.map(getEffectiveSolveMs);
+            const dnfCount = values.filter(v => v === Infinity).length;
+
+            if (dnfCount > trimCount) return Infinity; // DNF average
+
+            const sorted = [...values].sort((a, b) => a - b);
+            const trimmed = sorted.slice(trimCount, n - trimCount);
+            const sum = trimmed.reduce((acc, v) => acc + v, 0);
+            return sum / trimmed.length;
+        }
+
+        function computeBestAverageAcrossHistory(solves, n) {
+            if (solves.length < n) return null;
+            let best = null;
+            for (let i = 0; i <= solves.length - n; i++) {
+                const avg = computeWcaAverage(solves.slice(i, i + n), n);
+                if (avg !== null && avg !== Infinity) {
+                    if (best === null || avg < best) best = avg;
+                }
+            }
+            return best;
+        }
+
+        function renderSessionSelect() {
+            const select = document.getElementById('sessionSelect');
+            select.innerHTML = sessionsData.sessions.map(s =>
+                `<option value="${s.id}" ${s.id === sessionsData.activeSessionId ? 'selected' : ''}>${escapeHtml(s.name)} (${s.solves.length})</option>`
+            ).join('');
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/[&<>"']/g, m => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[m]));
+        }
+
+        function renderStatsAndHistory() {
+            renderSessionSelect();
+            const session = getActiveSession();
+            const solves = session.solves;
+
+            document.getElementById('solveCountBadge').textContent = `${solves.length} ${solves.length === 1 ? 'solve' : 'solves'}`;
+
+            // Single
+            const curSingle = solves.length > 0 ? getEffectiveSolveMs(solves[0]) : null;
+            let bestSingle = null;
+            for (const s of solves) {
+                const ms = getEffectiveSolveMs(s);
+                if (ms !== Infinity && (bestSingle === null || ms < bestSingle)) {
+                    bestSingle = ms;
+                }
+            }
+
+            // Averages
+            const ao5Cur   = computeWcaAverage(solves, 5);
+            const ao5Best  = computeBestAverageAcrossHistory(solves, 5);
+            const ao12Cur  = computeWcaAverage(solves, 12);
+            const ao12Best = computeBestAverageAcrossHistory(solves, 12);
+            const ao50Cur  = computeWcaAverage(solves, 50);
+            const ao50Best = computeBestAverageAcrossHistory(solves, 50);
+            const ao100Cur = computeWcaAverage(solves, 100);
+            const ao100Best = computeBestAverageAcrossHistory(solves, 100);
+
+            const fmt = (val, pen = null) => val === null ? '-' : formatTimeMs(val, pen);
+
+            document.getElementById('statSingleCur').textContent  = solves.length > 0 ? formatTimeMs(solves[0].rawMs + (solves[0].penalty === '+2' ? 2000 : 0), solves[0].penalty) : '-';
+            document.getElementById('statSingleBest').textContent = fmt(bestSingle);
+
+            document.getElementById('statAo5Cur').textContent    = fmt(ao5Cur);
+            document.getElementById('statAo5Best').textContent   = fmt(ao5Best);
+            document.getElementById('statAo12Cur').textContent   = fmt(ao12Cur);
+            document.getElementById('statAo12Best').textContent  = fmt(ao12Best);
+            document.getElementById('statAo50Cur').textContent   = fmt(ao50Cur);
+            document.getElementById('statAo50Best').textContent  = fmt(ao50Best);
+            document.getElementById('statAo100Cur').textContent  = fmt(ao100Cur);
+            document.getElementById('statAo100Best').textContent = fmt(ao100Best);
+
+            // Floating Live Averages card
+            document.getElementById('floatAo5').textContent   = fmt(ao5Cur);
+            document.getElementById('floatAo12').textContent  = fmt(ao12Cur);
+            document.getElementById('floatAo50').textContent  = fmt(ao50Cur);
+            document.getElementById('floatAo100').textContent = fmt(ao100Cur);
+
+            // Solve History List
+            const container = document.getElementById('solveListContainer');
+            if (solves.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-xs text-slate-500">No solves in this session yet.<br>Click <strong>Scramble &amp; Start</strong> or press <strong>SPACE</strong>!</div>`;
+                return;
+            }
+
+            container.innerHTML = solves.map((s, idx) => {
+                const num = solves.length - idx;
+                const effMs = s.penalty === '+2' ? s.rawMs + 2000 : s.rawMs;
+                const timeStr = formatTimeMs(effMs, s.penalty);
+                const timeClass = s.penalty === 'DNF' ? 'text-rose-400' : s.penalty === '+2' ? 'text-amber-400' : 'text-white';
+                const metaStr = s.mode === '3D' ? `${s.moves}m • ${Number(s.tps || 0).toFixed(2)} TPS` : 'Timer';
+
+                return `
+                    <div data-solve-id="${s.id}" class="solve-row group flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-900/75 hover:bg-slate-800/90 border border-slate-800/80 cursor-pointer transition text-xs">
+                        <div class="flex items-center gap-2 mono">
+                            <span class="text-[10px] text-slate-500 w-6">#${num}</span>
+                            <span class="font-bold ${timeClass}">${timeStr}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] text-slate-400 mono">${metaStr}</span>
+                            <button data-delete-id="${s.id}" title="Delete solve" class="text-slate-500 hover:text-rose-400 px-1 transition">&times;</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Attach click listeners for rows and quick delete buttons
+            container.querySelectorAll('.solve-row').forEach(row => {
+                row.addEventListener('click', (e) => {
+                    const delBtn = e.target.closest('[data-delete-id]');
+                    if (delBtn) {
+                        e.stopPropagation();
+                        deleteSolveById(delBtn.getAttribute('data-delete-id'));
+                        return;
+                    }
+                    openSolveDetailModal(row.getAttribute('data-solve-id'));
+                });
+            });
+        }
+
+        function deleteSolveById(solveId) {
+            const session = getActiveSession();
+            session.solves = session.solves.filter(s => s.id !== solveId);
+            saveAllSessions();
+            renderStatsAndHistory();
+        }
+
+        /**
+         * ============================================================================
+         * 9. SESSION MANAGEMENT MODALS (Create, Rename, Delete Session)
+         * ============================================================================
+         */
+        let sessionModalAction = null; // 'create' | 'rename' | 'delete'
+
+        const sessionModal = document.getElementById('sessionModal');
+        const sessionModalTitle = document.getElementById('sessionModalTitle');
+        const sessionModalDesc = document.getElementById('sessionModalDesc');
+        const sessionNameInput = document.getElementById('sessionNameInput');
+        const sessionModalConfirm = document.getElementById('sessionModalConfirm');
+
+        function openSessionModal(action) {
+            sessionModalAction = action;
+            const current = getActiveSession();
+
+            if (action === 'create') {
+                sessionModalTitle.textContent = 'Create New Session';
+                sessionModalDesc.textContent = 'Enter a name for your new session:';
+                sessionNameInput.classList.remove('hidden');
+                sessionNameInput.value = `Session ${sessionsData.sessions.length + 1}`;
+                sessionModalConfirm.textContent = 'Create';
+                sessionModalConfirm.className = 'px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white';
+            } else if (action === 'rename') {
+                sessionModalTitle.textContent = 'Rename Session';
+                sessionModalDesc.textContent = 'Update the name of the current session:';
+                sessionNameInput.classList.remove('hidden');
+                sessionNameInput.value = current.name;
+                sessionModalConfirm.textContent = 'Save';
+                sessionModalConfirm.className = 'px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white';
+            } else if (action === 'delete') {
+                sessionModalTitle.textContent = 'Delete Session';
+                sessionModalDesc.textContent = sessionsData.sessions.length <= 1
+                    ? `Delete all solves in "${current.name}" and reset it?`
+                    : `Are you sure you want to permanently delete "${current.name}" (${current.solves.length} solves)?`;
+                sessionNameInput.classList.add('hidden');
+                sessionModalConfirm.textContent = 'Delete';
+                sessionModalConfirm.className = 'px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white';
+            }
+
+            sessionModal.classList.remove('hidden');
+            sessionModal.classList.add('flex');
+            if (action !== 'delete') {
+                setTimeout(() => {
+                    sessionNameInput.focus();
+                    sessionNameInput.select();
+                }, 30);
+            }
+        }
+
+        function closeSessionModal() {
+            sessionModal.classList.add('hidden');
+            sessionModal.classList.remove('flex');
+            sessionModalAction = null;
+        }
+
+        document.getElementById('btnNewSession').addEventListener('click', () => openSessionModal('create'));
+        document.getElementById('btnRenameSession').addEventListener('click', () => openSessionModal('rename'));
+        document.getElementById('btnDeleteSession').addEventListener('click', () => openSessionModal('delete'));
+        document.getElementById('sessionModalCancel').addEventListener('click', closeSessionModal);
+
+        sessionModalConfirm.addEventListener('click', () => {
+            if (sessionModalAction === 'create') {
+                const name = sessionNameInput.value.trim() || `Session ${sessionsData.sessions.length + 1}`;
+                const newId = 'sess_' + Date.now();
+                sessionsData.sessions.push({ id: newId, name, solves: [] });
+                sessionsData.activeSessionId = newId;
+            } else if (sessionModalAction === 'rename') {
+                const name = sessionNameInput.value.trim();
+                if (name) {
+                    getActiveSession().name = name;
+                }
+            } else if (sessionModalAction === 'delete') {
+                if (sessionsData.sessions.length <= 1) {
+                    sessionsData.sessions[0].solves = [];
+                    sessionsData.sessions[0].name = 'Session 1';
+                } else {
+                    sessionsData.sessions = sessionsData.sessions.filter(s => s.id !== sessionsData.activeSessionId);
+                    sessionsData.activeSessionId = sessionsData.sessions[0].id;
+                }
+            }
+            saveAllSessions();
+            renderStatsAndHistory();
+            closeSessionModal();
+        });
+
+        sessionNameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') sessionModalConfirm.click();
+            if (e.key === 'Escape') closeSessionModal();
+        });
+
+        document.getElementById('sessionSelect').addEventListener('change', (e) => {
+            sessionsData.activeSessionId = e.target.value;
+            saveAllSessions();
+            renderStatsAndHistory();
+            e.target.blur();
+        });
+
+        /**
+         * ============================================================================
+         * 10. SOLVE INSPECTION / PENALTY MODAL & UI EVENT BINDINGS
+         * ============================================================================
+         */
+        let inspectedSolveId = null;
+
+        function openSolveDetailModal(solveId) {
+            const session = getActiveSession();
+            const idx = session.solves.findIndex(s => s.id === solveId);
+            if (idx === -1) return;
+
+            inspectedSolveId = solveId;
+            const solve = session.solves[idx];
+            const num = session.solves.length - idx;
+            const effMs = solve.penalty === '+2' ? solve.rawMs + 2000 : solve.rawMs;
+
+            document.getElementById('modalSolveTitle').textContent = `Solve #${num} (${solve.mode})`;
+            document.getElementById('modalSolveDate').textContent = solve.timestamp || '';
+            document.getElementById('modalSolveTime').textContent = formatTimeMs(effMs, solve.penalty);
+            document.getElementById('modalSolveMoves').textContent = solve.moves || 0;
+            document.getElementById('modalSolveTps').textContent = Number(solve.tps || 0).toFixed(2);
+            document.getElementById('modalSolveScramble').textContent = solve.scramble;
+
+            const modal = document.getElementById('solveDetailModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeSolveDetailModal() {
+            const modal = document.getElementById('solveDetailModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            inspectedSolveId = null;
+        }
+
+        function setInspectedSolvePenalty(penalty) {
+            if (!inspectedSolveId) return;
+            const session = getActiveSession();
+            const solve = session.solves.find(s => s.id === inspectedSolveId);
+            if (!solve) return;
+            solve.penalty = penalty;
+            const effMs = penalty === '+2' ? solve.rawMs + 2000 : solve.rawMs;
+            solve.tps = solve.moves > 0 && effMs > 0 ? Number((solve.moves / (effMs / 1000)).toFixed(2)) : 0;
+            saveAllSessions();
+            renderStatsAndHistory();
+            openSolveDetailModal(inspectedSolveId);
+        }
+
+        document.getElementById('closeSolveModalBtn').addEventListener('click', closeSolveDetailModal);
+        document.getElementById('modalCloseFooterBtn').addEventListener('click', closeSolveDetailModal);
+        document.getElementById('modalPenaltyOk').addEventListener('click', () => setInspectedSolvePenalty(null));
+        document.getElementById('modalPenaltyPlus2').addEventListener('click', () => setInspectedSolvePenalty('+2'));
+        document.getElementById('modalPenaltyDnf').addEventListener('click', () => setInspectedSolvePenalty('DNF'));
+
+        document.getElementById('modalDeleteSolveBtn').addEventListener('click', () => {
+            if (inspectedSolveId) {
+                deleteSolveById(inspectedSolveId);
+                closeSolveDetailModal();
+            }
+        });
+
+        document.getElementById('modalRetryScrambleBtn').addEventListener('click', () => {
+            const session = getActiveSession();
+            const solve = session.solves.find(s => s.id === inspectedSolveId);
+            if (solve) {
+                currentScramble = solve.scramble;
+                document.getElementById('scrambleText').textContent = currentScramble;
+                applyScrambleStringToCube(currentScramble);
+                closeSolveDetailModal();
+                setStatusPill('LOADED PREVIOUS SCRAMBLE ONTO CUBE', 'amber');
+            }
+        });
+
+        // Clear All Solves in Current Session
+        document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+            const session = getActiveSession();
+            if (session.solves.length === 0) return;
+            session.solves = [];
+            saveAllSessions();
+            renderStatsAndHistory();
+        });
+
+        // Mode Switcher (3D Cube vs Timer Mode)
+        const mode3dBtn = document.getElementById('mode3dBtn');
+        const modeTimerBtn = document.getElementById('modeTimerBtn');
+
+        function setAppMode(mode) {
+            stopAllTimers();
+            timerState = 'idle';
+            appMode = mode;
+
+            const timerBlock = document.getElementById('timerBlock');
+            const stageWrapper = document.getElementById('stageWrapper');
+            const liveMetricsRow = document.getElementById('liveMetricsRow');
+            const timerOverlay = document.getElementById('timerModeOverlay');
+            const controlsHint = document.getElementById('cubeControlsHint');
+
+            if (mode === '3d') {
+                mode3dBtn.className = 'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow';
+                modeTimerBtn.className = 'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-white';
+                timerBlock.className = 'flex flex-col items-center justify-center z-20 mt-1 shrink-0 transition-all';
+                stageWrapper.className = 'relative flex-1 w-full flex items-center justify-center min-h-0 my-1';
+                liveMetricsRow.classList.remove('hidden');
+                canvas.classList.remove('hidden', 'opacity-15', 'pointer-events-none');
+                timerOverlay.classList.add('hidden');
+                controlsHint.classList.remove('invisible');
+                initSolvedCube();
+                updateStageDimensions();
+                setStatusPill('3D CUBE MODE — CLICK SCRAMBLE & START OR PRESS SPACE', 'neutral');
+            } else {
+                modeTimerBtn.className = 'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow';
+                mode3dBtn.className = 'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-white';
+                timerBlock.className = 'absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none transition-all';
+                stageWrapper.className = 'relative flex-1 w-full flex items-center justify-center min-h-0 my-1';
+                liveMetricsRow.classList.add('hidden');
+                canvas.classList.add('hidden', 'pointer-events-none');
+                timerOverlay.classList.remove('hidden');
+                controlsHint.classList.add('invisible');
+                applyScrambleStringToCube(currentScramble);
+                setStatusPill('TIMER MODE — PRESS OR HOLD SPACE TO START', 'neutral');
+            }
+            document.getElementById('timerDisplay').textContent = '0.00';
+            setTimerDisplayColor('text-white');
+        }
+
+        mode3dBtn.addEventListener('click', () => setAppMode('3d'));
+        modeTimerBtn.addEventListener('click', () => setAppMode('timer'));
+
+        // Inspection toggle
+        document.getElementById('inspectionToggle').addEventListener('change', (e) => {
+            inspectionEnabled = e.target.checked;
+            e.target.blur();
+        });
+
+        // Main Action Buttons
+        document.getElementById('newScrambleBtn').addEventListener('click', (e) => {
+            loadNewScramble(appMode === 'timer');
+            e.currentTarget.blur();
+        });
+
+        document.getElementById('btnScrambleStart').addEventListener('click', (e) => {
+            triggerScrambleAndStart();
+            e.currentTarget.blur();
+        });
+
+        document.getElementById('btnResetCube').addEventListener('click', (e) => {
+            stopAllTimers();
+            timerState = 'idle';
+            moveCount = 0;
+            updateLiveMetricsUI(0);
+            initSolvedCube();
+            document.getElementById('timerDisplay').textContent = '0.00';
+            setTimerDisplayColor('text-white');
+            setStatusPill('CUBE RESET TO SOLVED (WHITE TOP, GREEN FRONT)', 'neutral');
+            e.currentTarget.blur();
+        });
+
+        document.getElementById('btnMarkDnf').addEventListener('click', (e) => {
+            recordDNFAndReset('SOLVE MARKED AS DNF');
+            e.currentTarget.blur();
+        });
+
+        // Keymap Modal
+        function closeKeymapModal() {
+            const m = document.getElementById('keymapModal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        }
+        document.getElementById('openKeymapBtn').addEventListener('click', () => {
+            const m = document.getElementById('keymapModal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        });
+        document.getElementById('closeKeymapBtn').addEventListener('click', closeKeymapModal);
+        document.getElementById('closeKeymapFooterBtn').addEventListener('click', closeKeymapModal);
+
+        // Dynamic Responsive Sizing for 3D Stage
+        function updateStageDimensions() {
+            // Canvas uses CSS absolute inset-0 w-full h-full inside #stageWrapper
+            // and dynamically syncs its buffer resolution inside render3DCube() every frame.
+        }
+
+        window.addEventListener('resize', updateStageDimensions);
+
+        // Main Animation Loop
+        function animateLoop(now) {
+            render3DCube(now);
+            requestAnimationFrame(animateLoop);
+        }
+
+        window.onload = function () {
+            loadAllSessions();
+            initSolvedCube();
+            loadNewScramble(false);
+            renderStatsAndHistory();
+            updateStageDimensions();
+            requestAnimationFrame(animateLoop);
+        };
+    </script>
+</body>
+</html>
