@@ -20,9 +20,21 @@
             background-color: #060913;
             color: #f8fafc;
             overflow: hidden;
-            height: 100vh;
+            height: 100dvh;
             width: 100vw;
             margin: 0;
+        }
+        .app-header {
+            padding-top: 0.65rem;
+            padding-bottom: 0.65rem;
+        }
+        @media all and (display-mode: standalone) {
+            .app-header {
+                padding-top: calc(env(safe-area-inset-top, 20px) + 10px);
+            }
+        }
+        #cubeCanvas {
+            touch-action: none;
         }
         .mono {
             font-family: 'JetBrains Mono', monospace;
@@ -109,10 +121,11 @@
         }
     </style>
 </head>
-<body class="flex flex-col h-screen w-screen overflow-hidden">
+<body class="flex flex-col h-dvh w-screen overflow-hidden">
 
     <!-- TOP NAVIGATION HEADER -->
-   <header style="padding-top: calc(env(safe-area-inset-top, 20px) + 22px); padding-bottom: 0.65rem;" class="shrink-0 px-4 border-b border-slate-800/80 bg-[#080c17] flex items-center justify-between z-30">
+    <header class="app-header shrink-0 px-4 border-b border-slate-800/80 bg-[#080c17] flex items-center justify-between z-30">
+        <!-- Brand Logo -->
         <div class="flex items-center gap-3">
             <div class="w-9 h-9 rounded-xl bg-slate-900 border border-slate-700/80 p-1.5 grid grid-cols-2 gap-1 shadow-inner">
                 <span class="rounded-[2px] bg-[#ffd500]"></span>
@@ -133,7 +146,7 @@
         <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800">
             <button id="mode3dBtn" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 16V8a2 2 0 00-1.73-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/>
                 </svg>
                 3D Cube
@@ -348,7 +361,7 @@
                         Reset View
                     </button>
                     <span class="hidden xl:inline-block px-2.5 py-1 rounded-lg bg-slate-900/70 border border-slate-800/80 text-[10px] text-slate-400">
-                        Left-drag sticker: Twist &bull; Middle/Right-drag: Rotate Cube &bull; Scroll wheel: Zoom
+                        Drag sticker: Twist &bull; Drag outside: Rotate &bull; Pinch / Scroll: Zoom
                     </span>
                 </div>
 
@@ -547,7 +560,7 @@
         let cubies = [];
         let activeAnim = null;
         let moveQueue = [];
-        let renderedPolygons = []; // Cached each frame for mouse raycasting
+        let renderedPolygons = []; // Cached each frame for mouse & touch raycasting
 
         function initSolvedCube() {
             cubies = [];
@@ -693,7 +706,6 @@
         }
 
         function projectPoint(camPt, width, height) {
-            // Default cube size is 50% larger than the previous 0.76 scale (0.76 * 1.5 = 1.14), multiplied by userZoom
             const baseScale = Math.min(width, height) * 1.14 * userZoom;
             const depth = CAM_DIST - camPt[2];
             const factor = ( baseScale * 1.75 ) / Math.max(depth, 1.5);
@@ -855,7 +867,7 @@
 
         /**
          * ============================================================================
-         * 3. 2D SCRAMBLE NET RENDERING (U=Yellow, L=Orange, F=Blue, R=Red, B=Green, D=White)
+         * 3. 2D SCRAMBLE NET RENDERING
          * ============================================================================
          */
         function getStickerColorAt(pos, normal) {
@@ -914,10 +926,11 @@
 
         /**
          * ============================================================================
-         * 4. MOUSE INTERACTION (Left-Drag Sticker Twist, Middle/Right-Click Orbit, Scroll Zoom)
+         * 4. MOUSE & TOUCH INTERACTION (Sticker Twist, Outside Orbit, 2-Finger Pinch Zoom)
          * ============================================================================
          */
         let dragState = null;
+        let pinchState = null;
 
         function pointInPoly(px, py, pts) {
             let inside = false;
@@ -932,7 +945,6 @@
         }
 
         function pickSticker(mx, my) {
-            // Check from front-most drawn polygon to back-most
             for (let i = renderedPolygons.length - 1; i >= 0; i--) {
                 const poly = renderedPolygons[i];
                 if (!poly.isFrontFacing) continue;
@@ -953,12 +965,12 @@
             userZoom = Math.max(0.45, Math.min(2.2, userZoom + zoomStep));
         }, { passive: false });
 
+        // MOUSE EVENTS
         canvas.addEventListener('mousedown', (e) => {
             const rect = canvas.getBoundingClientRect();
             const mx = e.clientX - rect.left;
             const my = e.clientY - rect.top;
 
-            // Middle-click (scroll wheel click, button === 1) or Right-click (button === 2) ALWAYS orbits the camera
             if (e.button === 1 || e.button === 2) {
                 e.preventDefault();
                 dragState = {
@@ -999,7 +1011,6 @@
             const dy = e.clientY - dragState.startY;
 
             if (dragState.type === 'orbit') {
-                // Direct natural rotation: dragging right rotates cube right, dragging down tilts cube down
                 camYaw = dragState.startYaw + dx * 0.0075;
                 camPitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, dragState.startPitch + dy * 0.0075));
             } else if (dragState.type === 'twist' && !dragState.triggered) {
@@ -1015,8 +1026,105 @@
             dragState = null;
         });
 
+        // TOUCH EVENTS FOR IPAD & IPHONE (1-Finger Twist/Orbit + 2-Finger Pinch Zoom outside cube)
+        function getTouchDistance(t1, t2) {
+            return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+        }
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (appMode !== '3d') return;
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+
+            if (e.touches.length === 2) {
+                const t1 = e.touches[0];
+                const t2 = e.touches[1];
+                const hit1 = pickSticker(t1.clientX - rect.left, t1.clientY - rect.top);
+                const hit2 = pickSticker(t2.clientX - rect.left, t2.clientY - rect.top);
+
+                // Two fingers placed outside the cube scale/zoom the cube
+                if (!hit1 && !hit2) {
+                    dragState = null;
+                    pinchState = {
+                        startDist: getTouchDistance(t1, t2),
+                        startZoom: userZoom
+                    };
+                }
+                return;
+            }
+
+            if (e.touches.length === 1 && !pinchState) {
+                const t = e.touches[0];
+                const mx = t.clientX - rect.left;
+                const my = t.clientY - rect.top;
+                const hit = pickSticker(mx, my);
+
+                if (hit) {
+                    dragState = {
+                        type: 'twist',
+                        startX: t.clientX,
+                        startY: t.clientY,
+                        hit,
+                        triggered: false
+                    };
+                } else {
+                    dragState = {
+                        type: 'orbit',
+                        startX: t.clientX,
+                        startY: t.clientY,
+                        startYaw: camYaw,
+                        startPitch: camPitch
+                    };
+                }
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            if (appMode !== '3d') return;
+            e.preventDefault();
+
+            if (e.touches.length === 2 && pinchState) {
+                const currentDist = getTouchDistance(e.touches[0], e.touches[1]);
+                if (pinchState.startDist > 10) {
+                    const scaleFactor = currentDist / pinchState.startDist;
+                    userZoom = Math.max(0.45, Math.min(2.2, pinchState.startZoom * scaleFactor));
+                }
+                return;
+            }
+
+            if (e.touches.length === 1 && dragState && !pinchState) {
+                const t = e.touches[0];
+                const dx = t.clientX - dragState.startX;
+                const dy = t.clientY - dragState.startY;
+
+                if (dragState.type === 'orbit') {
+                    camYaw = dragState.startYaw + dx * 0.008;
+                    camPitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, dragState.startPitch + dy * 0.008));
+                } else if (dragState.type === 'twist' && !dragState.triggered) {
+                    const dist = Math.hypot(dx, dy);
+                    if (dist > 14) {
+                        dragState.triggered = true;
+                        triggerDragSliceTurn(dragState.hit, dx, dy);
+                    }
+                }
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) {
+                pinchState = null;
+            }
+            if (e.touches.length === 0) {
+                dragState = null;
+            }
+        });
+
+        canvas.addEventListener('touchcancel', () => {
+            pinchState = null;
+            dragState = null;
+        });
+
         function triggerDragSliceTurn(hit, dx, dy) {
-            // Project local tangent vectors uWorld and vWorld onto screen to determine drag axis
             const uCam = worldToCamera(hit.uWorld);
             const vCam = worldToCamera(hit.vWorld);
             const uScreen = [uCam[0], -uCam[1]];
@@ -1034,7 +1142,6 @@
                 sign = Math.sign(dotV);
             }
 
-            // Rotation axis = normalWorld x moveDirWorld
             const n = hit.normalWorld;
             const m = [moveDirWorld[0] * sign, moveDirWorld[1] * sign, moveDirWorld[2] * sign];
             const cross = [
@@ -1131,16 +1238,16 @@
 
         /**
          * ============================================================================
-         * 6. TIMER, 15s INSPECTION & VOICE ALERTS STATE MACHINE
+         * 6. TIMER, 15s INSPECTION & IPADOS-COMPATIBLE AUDIO / VOICE ALERTS
          * ============================================================================
          */
-        let appMode = '3d'; // '3d' or 'timer'
-        let timerState = 'idle'; // 'idle' | 'ready_scrambled' | 'inspecting' | 'holding_space' | 'solving'
+        let appMode = '3d';
+        let timerState = 'idle';
         let inspectionEnabled = true;
 
         let inspectionStartPerf = 0;
         let inspectionInterval = null;
-        let inspectionPenalty = null; // null | '+2' | 'DNF'
+        let inspectionPenalty = null;
         let spoken8s = false;
         let spoken12s = false;
 
@@ -1148,13 +1255,56 @@
         let solveRafId = null;
         let moveCount = 0;
 
-        // Spacebar hold tracking for Timer Mode
         let spaceHoldTimer = null;
         let spaceReadyToStart = false;
         let spaceTriggeredInspection = false;
         let justStoppedSolve = false;
 
-        function speakAlert(text) {
+        let audioCtx = null;
+
+        function unlockAudioAndSpeech() {
+            try {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) {
+                    if (!audioCtx) audioCtx = new AudioContextClass();
+                    if (audioCtx.state === 'suspended') audioCtx.resume();
+                }
+            } catch (e) {}
+
+            try {
+                if ('speechSynthesis' in window) {
+                    const silentUtter = new SpeechSynthesisUtterance('');
+                    silentUtter.volume = 0;
+                    window.speechSynthesis.speak(silentUtter);
+                }
+            } catch (e) {}
+        }
+
+        function playAlertBeep(freq = 880, duration = 0.16, count = 1) {
+            try {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContextClass) return;
+                if (!audioCtx) audioCtx = new AudioContextClass();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+
+                for (let i = 0; i < count; i++) {
+                    const startAt = audioCtx.currentTime + i * (duration + 0.08);
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, startAt);
+                    gain.gain.setValueAtTime(0.22, startAt);
+                    gain.gain.exponentialRampToValueAtTime(0.001, startAt + duration);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(startAt);
+                    osc.stop(startAt + duration);
+                }
+            } catch (e) {}
+        }
+
+        function speakAlert(text, beepCount = 1) {
+            playAlertBeep(beepCount === 2 ? 1046 : 880, 0.14, beepCount);
             try {
                 if ('speechSynthesis' in window) {
                     window.speechSynthesis.cancel();
@@ -1163,9 +1313,7 @@
                     utter.rate = 1.08;
                     window.speechSynthesis.speak(utter);
                 }
-            } catch (err) {
-                // Ignore speech errors on restricted browsers
-            }
+            } catch (err) {}
         }
 
         function setStatusPill(text, variant = 'neutral') {
@@ -1222,6 +1370,7 @@
         }
 
         function startInspectionPhase() {
+            unlockAudioAndSpeech();
             stopAllTimers();
             timerState = 'inspecting';
             inspectionStartPerf = performance.now();
@@ -1249,14 +1398,13 @@
 
                 if (elapsedSec >= 8 && !spoken8s) {
                     spoken8s = true;
-                    speakAlert('eight seconds');
+                    speakAlert('eight seconds', 1);
                 }
                 if (elapsedSec >= 12 && !spoken12s) {
                     spoken12s = true;
-                    speakAlert('twelve seconds');
+                    speakAlert('twelve seconds', 2);
                 }
 
-                // If user is currently holding Space in Timer mode, keep green/amber color indicator updated
                 if (timerState === 'inspecting') {
                     if (elapsedSec < 15) {
                         timerEl.textContent = String(Math.max(1, remaining));
@@ -1332,7 +1480,6 @@
             saveAllSessions();
             renderStatsAndHistory();
 
-            // Show post-solve summary banner with Ao5/Ao12
             const curAo5 = computeWcaAverage(session.solves.slice(0, 5), 5);
             const curAo12 = computeWcaAverage(session.solves.slice(0, 12), 12);
             const banner = document.getElementById('lastSolveBanner');
@@ -1343,7 +1490,6 @@
             }
             banner.classList.remove('hidden');
 
-            // Generate next scramble automatically
             if (appMode === 'timer') {
                 loadNewScramble(true);
             } else {
@@ -1378,6 +1524,7 @@
         }
 
         function triggerScrambleAndStart() {
+            unlockAudioAndSpeech();
             stopAllTimers();
             loadNewScramble(true);
             moveCount = 0;
@@ -1408,12 +1555,10 @@
             KeyS: 'D',      KeyL: "D'",
             KeyD: 'L',      KeyE: "L'",
             KeyW: 'B',      KeyO: "B'",
-            // Cube rotations (Semicolon / Swedish Ö = y, KeyA = y' in opposite direction)
             Semicolon: 'y', KeyA: "y'",
             KeyR: 'x',      KeyY: 'x',
             KeyV: "x'",     KeyN: "x'",
             KeyP: 'z',      KeyQ: "z'",
-            // Wide & Slice moves
             KeyU: 'Rw',     KeyM: "Rw'",
             KeyC: 'Lw',
             Comma: 'Uw',    KeyX: "Uw'",
@@ -1422,7 +1567,6 @@
         };
 
         window.addEventListener('keydown', (e) => {
-            // Ignore shortcuts when typing in an input or when a modal is open
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
             if (!document.getElementById('sessionModal').classList.contains('hidden')) return;
             if (!document.getElementById('solveDetailModal').classList.contains('hidden')) return;
@@ -1431,7 +1575,6 @@
                 return;
             }
 
-            // TIMER MODE KEY HANDLING
             if (appMode === 'timer') {
                 if (timerState === 'solving') {
                     e.preventDefault();
@@ -1444,14 +1587,12 @@
                     e.preventDefault();
                     if (e.repeat) return;
 
-                    // If idle and 15s inspection is enabled, first Space press starts 15s inspection
                     if (timerState === 'idle' && inspectionEnabled) {
                         spaceTriggeredInspection = true;
                         startInspectionPhase();
                         return;
                     }
 
-                    // Otherwise (either during inspection or when inspection is off), holding Space prepares to start
                     if (timerState === 'inspecting' || timerState === 'idle') {
                         spaceReadyToStart = false;
                         setTimerDisplayColor('text-amber-400');
@@ -1467,7 +1608,6 @@
                 return;
             }
 
-            // 3D CUBE MODE KEY HANDLING
             if (e.code === 'Space') {
                 e.preventDefault();
                 if (!e.repeat) {
@@ -1476,7 +1616,6 @@
                 return;
             }
 
-            // Check physical key code first, with fallback for Swedish 'ö' key
             let move = CSTIMER_KEYMAP_BY_CODE[e.code];
             if (!move && (e.key === 'ö' || e.key === 'Ö' || e.key === ';')) {
                 move = 'y';
@@ -1511,7 +1650,6 @@
                 spaceReadyToStart = false;
                 beginSolving();
             } else {
-                // Released Space too early before turning green
                 if (timerState === 'inspecting') {
                     setTimerDisplayColor('text-amber-400');
                     setStatusPill('INSPECTION — HOLD SPACE UNTIL GREEN TO START', 'amber');
@@ -1524,7 +1662,7 @@
 
         /**
          * ============================================================================
-         * 8. MULTI-SESSION STORAGE & WCA STATISTICS (Single, Ao5, Ao12, Ao50, Ao100)
+         * 8. MULTI-SESSION STORAGE & WCA STATISTICS
          * ============================================================================
          */
         const STORAGE_KEY = 'lc_cuber_sessions_v2';
@@ -1547,7 +1685,6 @@
                         return;
                     }
                 }
-                // Migrate legacy single-session solves if present
                 const legacyRaw = localStorage.getItem(LEGACY_KEY);
                 if (legacyRaw) {
                     const legacySolves = JSON.parse(legacyRaw);
@@ -1556,17 +1693,13 @@
                         saveAllSessions();
                     }
                 }
-            } catch (err) {
-                // Ignore storage errors
-            }
+            } catch (err) {}
         }
 
         function saveAllSessions() {
             try {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionsData));
-            } catch (err) {
-                // Ignore storage errors
-            }
+            } catch (err) {}
         }
 
         function getActiveSession() {
@@ -1583,7 +1716,6 @@
             return solve.penalty === '+2' ? solve.rawMs + 2000 : solve.rawMs;
         }
 
-        // Standard WCA Average of N: trim top 5% (ceil(N*0.05), min 1) and bottom 5%
         function computeWcaAverage(slice, n) {
             if (!slice || slice.length < n) return null;
             const windowSolves = slice.slice(0, n);
@@ -1591,7 +1723,7 @@
             const values = windowSolves.map(getEffectiveSolveMs);
             const dnfCount = values.filter(v => v === Infinity).length;
 
-            if (dnfCount > trimCount) return Infinity; // DNF average
+            if (dnfCount > trimCount) return Infinity;
 
             const sorted = [...values].sort((a, b) => a - b);
             const trimmed = sorted.slice(trimCount, n - trimCount);
@@ -1631,8 +1763,6 @@
 
             document.getElementById('solveCountBadge').textContent = `${solves.length} ${solves.length === 1 ? 'solve' : 'solves'}`;
 
-            // Single
-            const curSingle = solves.length > 0 ? getEffectiveSolveMs(solves[0]) : null;
             let bestSingle = null;
             for (const s of solves) {
                 const ms = getEffectiveSolveMs(s);
@@ -1641,7 +1771,6 @@
                 }
             }
 
-            // Averages
             const ao5Cur   = computeWcaAverage(solves, 5);
             const ao5Best  = computeBestAverageAcrossHistory(solves, 5);
             const ao12Cur  = computeWcaAverage(solves, 12);
@@ -1665,13 +1794,11 @@
             document.getElementById('statAo100Cur').textContent  = fmt(ao100Cur);
             document.getElementById('statAo100Best').textContent = fmt(ao100Best);
 
-            // Floating Live Averages card
             document.getElementById('floatAo5').textContent   = fmt(ao5Cur);
             document.getElementById('floatAo12').textContent  = fmt(ao12Cur);
             document.getElementById('floatAo50').textContent  = fmt(ao50Cur);
             document.getElementById('floatAo100').textContent = fmt(ao100Cur);
 
-            // Solve History List
             const container = document.getElementById('solveListContainer');
             if (solves.length === 0) {
                 container.innerHTML = `<div class="text-center py-8 text-xs text-slate-500">No solves in this session yet.<br>Click <strong>Scramble &amp; Start</strong> or press <strong>SPACE</strong>!</div>`;
@@ -1699,7 +1826,6 @@
                 `;
             }).join('');
 
-            // Attach click listeners for rows and quick delete buttons
             container.querySelectorAll('.solve-row').forEach(row => {
                 row.addEventListener('click', (e) => {
                     const delBtn = e.target.closest('[data-delete-id]');
@@ -1722,10 +1848,10 @@
 
         /**
          * ============================================================================
-         * 9. SESSION MANAGEMENT MODALS (Create, Rename, Delete Session)
+         * 9. SESSION MANAGEMENT MODALS
          * ============================================================================
          */
-        let sessionModalAction = null; // 'create' | 'rename' | 'delete'
+        let sessionModalAction = null;
 
         const sessionModal = document.getElementById('sessionModal');
         const sessionModalTitle = document.getElementById('sessionModalTitle');
@@ -1893,7 +2019,6 @@
             }
         });
 
-        // Clear All Solves in Current Session
         document.getElementById('clearHistoryBtn').addEventListener('click', () => {
             const session = getActiveSession();
             if (session.solves.length === 0) return;
@@ -1902,7 +2027,6 @@
             renderStatsAndHistory();
         });
 
-        // Mode Switcher (3D Cube vs Timer Mode)
         const mode3dBtn = document.getElementById('mode3dBtn');
         const modeTimerBtn = document.getElementById('modeTimerBtn');
 
@@ -1948,13 +2072,11 @@
         mode3dBtn.addEventListener('click', () => setAppMode('3d'));
         modeTimerBtn.addEventListener('click', () => setAppMode('timer'));
 
-        // Inspection toggle
         document.getElementById('inspectionToggle').addEventListener('change', (e) => {
             inspectionEnabled = e.target.checked;
             e.target.blur();
         });
 
-        // Main Action Buttons
         document.getElementById('newScrambleBtn').addEventListener('click', (e) => {
             loadNewScramble(appMode === 'timer');
             e.currentTarget.blur();
@@ -1982,7 +2104,6 @@
             e.currentTarget.blur();
         });
 
-        // Keymap Modal
         function closeKeymapModal() {
             const m = document.getElementById('keymapModal');
             m.classList.add('hidden');
@@ -1996,15 +2117,9 @@
         document.getElementById('closeKeymapBtn').addEventListener('click', closeKeymapModal);
         document.getElementById('closeKeymapFooterBtn').addEventListener('click', closeKeymapModal);
 
-        // Dynamic Responsive Sizing for 3D Stage
-        function updateStageDimensions() {
-            // Canvas uses CSS absolute inset-0 w-full h-full inside #stageWrapper
-            // and dynamically syncs its buffer resolution inside render3DCube() every frame.
-        }
-
+        function updateStageDimensions() {}
         window.addEventListener('resize', updateStageDimensions);
 
-        // Main Animation Loop
         function animateLoop(now) {
             render3DCube(now);
             requestAnimationFrame(animateLoop);
