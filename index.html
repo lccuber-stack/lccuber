@@ -33,7 +33,7 @@
                 padding-top: calc(env(safe-area-inset-top, 20px) + 18px);
             }
         }
-        #cubeCanvas {
+        #cubeCanvas, #rightStageSection.timer-touch-active {
             touch-action: none;
         }
         .mono {
@@ -268,7 +268,7 @@
         </aside>
 
         <!-- RIGHT COLUMN: MAIN STAGE (SCRAMBLE, TIMER, 3D CUBE / 2D NET, FLOATING CARDS) -->
-        <section class="flex-1 panel-card rounded-2xl relative flex flex-col items-center justify-between p-4 overflow-hidden min-w-0">
+        <section id="rightStageSection" class="flex-1 panel-card rounded-2xl relative flex flex-col items-center justify-between p-4 overflow-hidden min-w-0">
 
             <!-- TOP SCRAMBLE BAR -->
             <div class="w-full max-w-4xl bg-slate-950/75 border border-slate-800/90 rounded-2xl px-4 py-2.5 flex items-center justify-between gap-4 z-20 shrink-0">
@@ -307,14 +307,14 @@
                 <div id="lastSolveBanner" class="hidden mt-2 px-3.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs mono">
                 </div>
 
-                <!-- Timer Mode Spacebar Instructions (Shown directly below big timer in Timer Mode) -->
+                <!-- Timer Mode Touch & Spacebar Instructions -->
                 <div id="timerModeOverlay" class="hidden mt-6 pointer-events-none">
                     <div class="bg-slate-900/80 border border-slate-800/90 px-5 py-3 rounded-2xl text-center max-w-md shadow-xl">
                         <p class="text-xs sm:text-sm font-semibold text-slate-200 mb-1">
-                            Hold <kbd>SPACE</kbd> until green, release to start.
+                            Touch &amp; hold screen or <kbd>SPACE</kbd> until green, release to start.
                         </p>
                         <p class="text-[11px] text-slate-400">
-                            With 15s Inspection enabled: Press <kbd>SPACE</kbd> once to begin inspection, then hold &amp; release <kbd>SPACE</kbd> to start solving. Press any key to stop.
+                            With 15s Inspection enabled: Tap screen or press <kbd>SPACE</kbd> once to begin inspection, then touch &amp; hold until green and release to start. Tap anywhere or press any key to stop.
                         </p>
                     </div>
                 </div>
@@ -437,7 +437,7 @@
                     <div class="flex justify-between"><span>Uw / Uw'</span><span><kbd>,</kbd> / <kbd>C</kbd></span></div>
                     <div class="flex justify-between"><span>M'</span><span><kbd>5</kbd> or <kbd>6</kbd></span></div>
                     <div class="flex justify-between"><span>M</span><span><kbd>.</kbd> or <kbd>X</kbd></span></div>
-                    <div class="flex justify-between"><span>Start / Inspect</span><span><kbd>SPACE</kbd></span></div>
+                    <div class="flex justify-between"><span>Start / Inspect</span><span><kbd>SPACE</kbd> / Tap</span></div>
                 </div>
             </div>
 
@@ -1414,7 +1414,7 @@
             setStatusPill(
                 appMode === '3d'
                     ? 'INSPECTION (15S) — MAKE ANY MOVE TO START SOLVING'
-                    : 'INSPECTION (15S) — HOLD & RELEASE SPACE TO START',
+                    : 'INSPECTION (15S) — HOLD & RELEASE SCREEN / SPACE TO START',
                 'amber'
             );
 
@@ -1461,7 +1461,7 @@
             const timerEl = document.getElementById('timerDisplay');
             setTimerDisplayColor('text-white');
             setStatusPill(
-                appMode === '3d' ? 'SOLVING — SOLVE THE CUBE!' : 'SOLVING — PRESS ANY KEY TO STOP',
+                appMode === '3d' ? 'SOLVING — SOLVE THE CUBE!' : 'SOLVING — TAP SCREEN OR PRESS ANY KEY TO STOP',
                 'green'
             );
 
@@ -1571,7 +1571,7 @@
 
         /**
          * ============================================================================
-         * 7. OFFICIAL CSTIMER KEYBOARD MAPPING + TIMER MODE SPACEBAR STATE MACHINE
+         * 7. OFFICIAL CSTIMER KEYBOARD & TOUCH TIMER MODE HANDLERS
          * ============================================================================
          */
         const CSTIMER_KEYMAP_BY_CODE = {
@@ -1595,6 +1595,120 @@
             Period: 'M',    KeyX: 'M'
         };
 
+        function handleTimerModePressDown() {
+            if (appMode !== 'timer') return;
+            unlockAudioAndSpeech();
+
+            if (timerState === 'solving') {
+                justStoppedSolve = true;
+                finishSolve();
+                return;
+            }
+
+            if (timerState === 'idle' && inspectionEnabled) {
+                spaceTriggeredInspection = true;
+                startInspectionPhase();
+                return;
+            }
+
+            if (timerState === 'inspecting' || timerState === 'idle') {
+                spaceReadyToStart = false;
+                setTimerDisplayColor('text-amber-400');
+                setStatusPill('HOLD UNTIL GREEN...', 'amber');
+
+                if (spaceHoldTimer) clearTimeout(spaceHoldTimer);
+                spaceHoldTimer = setTimeout(() => {
+                    spaceReadyToStart = true;
+                    setTimerDisplayColor('text-emerald-400');
+                    setStatusPill('READY — RELEASE TO START TIMER!', 'green');
+                }, 280);
+            }
+        }
+
+        function handleTimerModePressRelease() {
+            if (appMode !== 'timer') return;
+
+            if (justStoppedSolve) {
+                justStoppedSolve = false;
+                return;
+            }
+
+            if (spaceTriggeredInspection) {
+                spaceTriggeredInspection = false;
+                return;
+            }
+
+            if (spaceHoldTimer) {
+                clearTimeout(spaceHoldTimer);
+                spaceHoldTimer = null;
+            }
+
+            if (spaceReadyToStart) {
+                spaceReadyToStart = false;
+                beginSolving();
+            } else {
+                if (timerState === 'inspecting') {
+                    setTimerDisplayColor('text-amber-400');
+                    setStatusPill('INSPECTION — HOLD UNTIL GREEN TO START', 'amber');
+                } else {
+                    setTimerDisplayColor('text-white');
+                    setStatusPill('HOLD UNTIL GREEN TO START', 'neutral');
+                }
+            }
+        }
+
+        // Touch & Mouse on the large right stage area in Timer Mode
+        const rightStageSection = document.getElementById('rightStageSection');
+        let activeTimerTouchId = null;
+
+        function isInteractiveControl(target) {
+            return Boolean(target.closest('button, input, select, a, label, #scrambleNetGrid'));
+        }
+
+        rightStageSection.addEventListener('touchstart', (e) => {
+            if (appMode !== 'timer') return;
+            if (isInteractiveControl(e.target)) return;
+            e.preventDefault();
+            if (activeTimerTouchId !== null) return;
+            const touch = e.changedTouches[0];
+            activeTimerTouchId = touch.identifier;
+            handleTimerModePressDown();
+        }, { passive: false });
+
+        rightStageSection.addEventListener('touchend', (e) => {
+            if (appMode !== 'timer') return;
+            if (activeTimerTouchId === null) return;
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === activeTimerTouchId) {
+                    e.preventDefault();
+                    activeTimerTouchId = null;
+                    handleTimerModePressRelease();
+                    break;
+                }
+            }
+        }, { passive: false });
+
+        rightStageSection.addEventListener('touchcancel', () => {
+            if (activeTimerTouchId !== null) {
+                activeTimerTouchId = null;
+                handleTimerModePressRelease();
+            }
+        });
+
+        rightStageSection.addEventListener('mousedown', (e) => {
+            if (appMode !== 'timer') return;
+            if (e.button !== 0) return;
+            if (isInteractiveControl(e.target)) return;
+            e.preventDefault();
+            handleTimerModePressDown();
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (appMode === 'timer' && (spaceHoldTimer || spaceReadyToStart || spaceTriggeredInspection || justStoppedSolve)) {
+                handleTimerModePressRelease();
+            }
+        });
+
         window.addEventListener('keydown', (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
             if (!document.getElementById('sessionModal').classList.contains('hidden')) return;
@@ -1607,32 +1721,14 @@
             if (appMode === 'timer') {
                 if (timerState === 'solving') {
                     e.preventDefault();
-                    justStoppedSolve = true;
-                    finishSolve();
+                    handleTimerModePressDown();
                     return;
                 }
 
                 if (e.code === 'Space') {
                     e.preventDefault();
                     if (e.repeat) return;
-
-                    if (timerState === 'idle' && inspectionEnabled) {
-                        spaceTriggeredInspection = true;
-                        startInspectionPhase();
-                        return;
-                    }
-
-                    if (timerState === 'inspecting' || timerState === 'idle') {
-                        spaceReadyToStart = false;
-                        setTimerDisplayColor('text-amber-400');
-                        setStatusPill('HOLD SPACE...', 'amber');
-
-                        spaceHoldTimer = setTimeout(() => {
-                            spaceReadyToStart = true;
-                            setTimerDisplayColor('text-emerald-400');
-                            setStatusPill('READY — RELEASE SPACE TO START TIMER!', 'green');
-                        }, 280);
-                    }
+                    handleTimerModePressDown();
                 }
                 return;
             }
@@ -1659,34 +1755,7 @@
         window.addEventListener('keyup', (e) => {
             if (appMode !== 'timer') return;
             if (e.code !== 'Space') return;
-
-            if (justStoppedSolve) {
-                justStoppedSolve = false;
-                return;
-            }
-
-            if (spaceTriggeredInspection) {
-                spaceTriggeredInspection = false;
-                return;
-            }
-
-            if (spaceHoldTimer) {
-                clearTimeout(spaceHoldTimer);
-                spaceHoldTimer = null;
-            }
-
-            if (spaceReadyToStart) {
-                spaceReadyToStart = false;
-                beginSolving();
-            } else {
-                if (timerState === 'inspecting') {
-                    setTimerDisplayColor('text-amber-400');
-                    setStatusPill('INSPECTION — HOLD SPACE UNTIL GREEN TO START', 'amber');
-                } else {
-                    setTimerDisplayColor('text-white');
-                    setStatusPill('HOLD SPACE UNTIL GREEN TO START', 'neutral');
-                }
-            }
+            handleTimerModePressRelease();
         });
 
         /**
@@ -2075,6 +2144,7 @@
                 modeTimerBtn.className = 'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-white';
                 timerBlock.className = 'flex flex-col items-center justify-center z-20 mt-1 shrink-0 transition-all';
                 stageWrapper.className = 'relative flex-1 w-full flex items-center justify-center min-h-0 my-1';
+                rightStageSection.classList.remove('timer-touch-active', 'cursor-pointer');
                 liveMetricsRow.classList.remove('hidden');
                 canvas.classList.remove('hidden', 'opacity-15', 'pointer-events-none');
                 timerOverlay.classList.add('hidden');
@@ -2087,12 +2157,13 @@
                 mode3dBtn.className = 'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-white';
                 timerBlock.className = 'absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none transition-all';
                 stageWrapper.className = 'relative flex-1 w-full flex items-center justify-center min-h-0 my-1';
+                rightStageSection.classList.add('timer-touch-active', 'cursor-pointer');
                 liveMetricsRow.classList.add('hidden');
                 canvas.classList.add('hidden', 'pointer-events-none');
                 timerOverlay.classList.remove('hidden');
                 controlsHint.classList.add('invisible');
                 applyScrambleStringToCube(currentScramble);
-                setStatusPill('TIMER MODE — PRESS OR HOLD SPACE TO START', 'neutral');
+                setStatusPill('TIMER MODE — TAP OR HOLD SCREEN / SPACE TO START', 'neutral');
             }
             document.getElementById('timerDisplay').textContent = '0.00';
             setTimerDisplayColor('text-white');
