@@ -400,7 +400,7 @@
             <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div>
                     <h3 class="text-base font-bold text-white">csTimer.net Keyboard Controls</h3>
-                    <p class="text-xs text-slate-400">Standard speedcubing virtual cube key bindings</p>
+                    <p class="text-xs text-slate-400">Official csTimer virtual cube key bindings</p>
                 </div>
                 <button id="closeKeymapBtn" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -422,8 +422,8 @@
 
                 <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-1.5">
                     <div class="font-bold text-emerald-400 uppercase text-[10px] tracking-wider mb-2">Cube Rotations</div>
-                    <div class="flex justify-between"><span>x (R-axis)</span><span><kbd>R</kbd> or <kbd>Y</kbd></span></div>
-                    <div class="flex justify-between"><span>x' (L-axis)</span><span><kbd>V</kbd> or <kbd>N</kbd></span></div>
+                    <div class="flex justify-between"><span>x (R-axis)</span><span><kbd>T</kbd> or <kbd>Y</kbd></span></div>
+                    <div class="flex justify-between"><span>x' (L-axis)</span><span><kbd>B</kbd> or <kbd>N</kbd></span></div>
                     <div class="flex justify-between"><span>y (U-axis)</span><span><kbd>;</kbd> / <kbd>Ö</kbd></span></div>
                     <div class="flex justify-between"><span>y' (U'-axis)</span><span><kbd>A</kbd></span></div>
                     <div class="flex justify-between"><span>z (F-axis)</span><span><kbd>P</kbd></span></div>
@@ -433,10 +433,10 @@
                 <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-1.5">
                     <div class="font-bold text-amber-400 uppercase text-[10px] tracking-wider mb-2">Wide &amp; Slice Moves</div>
                     <div class="flex justify-between"><span>Rw / Rw'</span><span><kbd>U</kbd> / <kbd>M</kbd></span></div>
-                    <div class="flex justify-between"><span>Lw / Lw'</span><span><kbd>C</kbd> / <kbd>R</kbd></span></div>
-                    <div class="flex justify-between"><span>Uw / Uw'</span><span><kbd>,</kbd> / <kbd>X</kbd></span></div>
+                    <div class="flex justify-between"><span>Lw / Lw'</span><span><kbd>V</kbd> / <kbd>R</kbd></span></div>
+                    <div class="flex justify-between"><span>Uw / Uw'</span><span><kbd>,</kbd> / <kbd>C</kbd></span></div>
                     <div class="flex justify-between"><span>M'</span><span><kbd>5</kbd> or <kbd>6</kbd></span></div>
-                    <div class="flex justify-between"><span>M</span><span><kbd>B</kbd> or <kbd>.</kbd></span></div>
+                    <div class="flex justify-between"><span>M</span><span><kbd>.</kbd> or <kbd>X</kbd></span></div>
                     <div class="flex justify-between"><span>Start / Inspect</span><span><kbd>SPACE</kbd></span></div>
                 </div>
             </div>
@@ -547,12 +547,10 @@
         const canvas = document.getElementById('cubeCanvas');
         const ctx = canvas.getContext('2d');
 
-        // 3x3 rotation matrix transforming world space -> camera space (allows unrestricted 360° tumbling)
         function createDefaultCamMatrix() {
             const pitch = Math.PI / 4; // 45 deg looking down at U-F ridge
             const cp = Math.cos(pitch);
             const sp = Math.sin(pitch);
-            // X stays X; Y_cam = Y*cp - Z*sp; Z_cam = Y*sp + Z*cp
             return [
                 [1, 0,   0],
                 [0, cp, -sp],
@@ -581,7 +579,6 @@
         }
 
         function orthonormalizeMat3(M) {
-            // Gram-Schmidt orthonormalization to prevent floating-point drift over thousands of rotations
             let r0 = [...M[0]];
             let r1 = [...M[1]];
             const len0 = Math.hypot(r0[0], r0[1], r0[2]) || 1;
@@ -739,7 +736,6 @@
         }
 
         function applyScreenOrbitDelta(dx, dy, sensitivity = 0.008) {
-            // Rotate around screen Y axis (horizontal drag) and screen X axis (vertical drag) freely in 360°
             const rotHorizontal = rotYMat(dx * sensitivity);
             const rotVertical = rotXMat(dy * sensitivity);
             camMatrix = orthonormalizeMat3(multiplyMat3(rotVertical, multiplyMat3(rotHorizontal, camMatrix)));
@@ -1575,25 +1571,28 @@
 
         /**
          * ============================================================================
-         * 7. KEYBOARD MAPPING (csTimer Layout + Timer Mode Spacebar State Machine)
+         * 7. OFFICIAL CSTIMER KEYBOARD MAPPING + TIMER MODE SPACEBAR STATE MACHINE
          * ============================================================================
          */
         const CSTIMER_KEYMAP_BY_CODE = {
+            // Outer Face Turns
             KeyJ: 'U',      KeyF: "U'",
             KeyI: 'R',      KeyK: "R'",
             KeyH: 'F',      KeyG: "F'",
             KeyS: 'D',      KeyL: "D'",
             KeyD: 'L',      KeyE: "L'",
             KeyW: 'B',      KeyO: "B'",
+            // Cube Rotations (Official csTimer: Y/T = x, N/B = x', ;/Ö = y, A = y', P = z, Q = z')
+            KeyY: 'x',      KeyT: 'x',
+            KeyN: "x'",     KeyB: "x'",
             Semicolon: 'y', KeyA: "y'",
-            KeyR: 'x',      KeyY: 'x',
-            KeyV: "x'",     KeyN: "x'",
             KeyP: 'z',      KeyQ: "z'",
+            // Wide & Slice Moves (Official csTimer: U = Rw, M = Rw', V = Lw, R = Lw', , = Uw, C = Uw', 5/6 = M', ./X = M)
             KeyU: 'Rw',     KeyM: "Rw'",
-            KeyC: 'Lw',
-            Comma: 'Uw',    KeyX: "Uw'",
+            KeyV: 'Lw',     KeyR: "Lw'",
+            Comma: 'Uw',    KeyC: "Uw'",
             Digit5: "M'",   Digit6: "M'",
-            KeyB: 'M',      Period: 'M'
+            Period: 'M',    KeyX: 'M'
         };
 
         window.addEventListener('keydown', (e) => {
