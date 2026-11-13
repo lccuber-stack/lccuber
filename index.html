@@ -2,7 +2,10 @@
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#080c17">
     <title>LC Cuber - Virtual Cube & WCA Timer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -109,7 +112,7 @@
 <body class="flex flex-col h-screen w-screen overflow-hidden">
 
     <!-- TOP NAVIGATION HEADER -->
-    <header class="h-14 shrink-0 px-4 border-b border-slate-800/80 bg-[#080c17] flex items-center justify-between z-30">
+    <header style="padding-top: max(0.65rem, env(safe-area-inset-top)); padding-bottom: 0.65rem;" class="shrink-0 px-4 border-b border-slate-800/80 bg-[#080c17] flex items-center justify-between z-30">
         <!-- Brand Logo -->
         <div class="flex items-center gap-3">
             <div class="w-9 h-9 rounded-xl bg-slate-900 border border-slate-700/80 p-1.5 grid grid-cols-2 gap-1 shadow-inner">
