@@ -30,7 +30,7 @@
         }
         @media all and (display-mode: standalone) {
             .app-header {
-                padding-top: calc(env(safe-area-inset-top, 20px) + 10px);
+                padding-top: calc(env(safe-area-inset-top, 20px) + 18px);
             }
         }
         #cubeCanvas {
@@ -124,7 +124,7 @@
 <body class="flex flex-col h-dvh w-screen overflow-hidden">
 
     <!-- TOP NAVIGATION HEADER -->
-    <header class="app-header shrink-0 px-4 border-b border-slate-800/80 bg-[#080c17] flex items-center justify-between z-30">
+    <header id="appHeader" class="app-header shrink-0 px-4 border-b border-slate-800/80 bg-[#080c17] flex items-center justify-between z-30">
         <!-- Brand Logo -->
         <div class="flex items-center gap-3">
             <div class="w-9 h-9 rounded-xl bg-slate-900 border border-slate-700/80 p-1.5 grid grid-cols-2 gap-1 shadow-inner">
@@ -361,7 +361,7 @@
                         Reset View
                     </button>
                     <span class="hidden xl:inline-block px-2.5 py-1 rounded-lg bg-slate-900/70 border border-slate-800/80 text-[10px] text-slate-400">
-                        Drag sticker: Twist &bull; Drag outside: Rotate &bull; Pinch / Scroll: Zoom
+                        Drag sticker: Twist &bull; Drag outside: 360° Free Orbit &bull; Pinch / Scroll: Zoom
                     </span>
                 </div>
 
@@ -541,26 +541,74 @@
 
         /**
          * ============================================================================
-         * 2. 3D VIRTUAL CUBE ENGINE (csTimer Perspective + Painter's Algorithm)
+         * 2. UNLIMITED 360° TRACKBALL 3D CAMERA & VIRTUAL CUBE ENGINE
          * ============================================================================
          */
         const canvas = document.getElementById('cubeCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Default camera angle: yaw = 0 (horizontally dead-on), pitch = 45° (looking at U-F ridge)
-        const DEFAULT_YAW = 0;
-        const DEFAULT_PITCH = Math.PI / 4; // 45 deg
-        const DEFAULT_ZOOM = 1.0;
+        // 3x3 rotation matrix transforming world space -> camera space (allows unrestricted 360° tumbling)
+        function createDefaultCamMatrix() {
+            const pitch = Math.PI / 4; // 45 deg looking down at U-F ridge
+            const cp = Math.cos(pitch);
+            const sp = Math.sin(pitch);
+            // X stays X; Y_cam = Y*cp - Z*sp; Z_cam = Y*sp + Z*cp
+            return [
+                [1, 0,   0],
+                [0, cp, -sp],
+                [0, sp,  cp]
+            ];
+        }
 
-        let camYaw = DEFAULT_YAW;
-        let camPitch = DEFAULT_PITCH;
+        function multiplyMat3(A, B) {
+            const out = [[0,0,0],[0,0,0],[0,0,0]];
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    out[r][c] = A[r][0]*B[0][c] + A[r][1]*B[1][c] + A[r][2]*B[2][c];
+                }
+            }
+            return out;
+        }
+
+        function rotXMat(a) {
+            const c = Math.cos(a), s = Math.sin(a);
+            return [[1, 0, 0], [0, c, -s], [0, s, c]];
+        }
+
+        function rotYMat(a) {
+            const c = Math.cos(a), s = Math.sin(a);
+            return [[c, 0, s], [0, 1, 0], [-s, 0, c]];
+        }
+
+        function orthonormalizeMat3(M) {
+            // Gram-Schmidt orthonormalization to prevent floating-point drift over thousands of rotations
+            let r0 = [...M[0]];
+            let r1 = [...M[1]];
+            const len0 = Math.hypot(r0[0], r0[1], r0[2]) || 1;
+            r0 = r0.map(v => v / len0);
+
+            const dot01 = r0[0]*r1[0] + r0[1]*r1[1] + r0[2]*r1[2];
+            r1 = [r1[0] - dot01*r0[0], r1[1] - dot01*r0[1], r1[2] - dot01*r0[2]];
+            const len1 = Math.hypot(r1[0], r1[1], r1[2]) || 1;
+            r1 = r1.map(v => v / len1);
+
+            const r2 = [
+                r0[1]*r1[2] - r0[2]*r1[1],
+                r0[2]*r1[0] - r0[0]*r1[2],
+                r0[0]*r1[1] - r0[1]*r1[0]
+            ];
+            return [r0, r1, r2];
+        }
+
+        let camMatrix = createDefaultCamMatrix();
+        const DEFAULT_ZOOM = 1.0;
         let userZoom = DEFAULT_ZOOM;
         const CAM_DIST = 10.5;
 
         let cubies = [];
         let activeAnim = null;
         let moveQueue = [];
-        let renderedPolygons = []; // Cached each frame for mouse & touch raycasting
+        let renderedPolygons = [];
 
         function initSolvedCube() {
             cubies = [];
@@ -597,7 +645,6 @@
             return [Math.round(v[0]), Math.round(v[1]), Math.round(v[2])];
         }
 
-        // Parse standard WCA / csTimer move notation into axis, layer filter, and angle
         function getMoveSpec(notation) {
             const base = notation.replace(/['2]/g, '');
             const isPrime = notation.includes("'");
@@ -605,7 +652,6 @@
             let mult = isPrime ? -1 : 1;
             if (isDouble) mult *= 2;
 
-            // Right-hand rule angles around +X, +Y, +Z
             switch (base) {
                 case 'U': return { axis: 'y', layers: [1],  angle: -Math.PI / 2 * mult, isRotation: false };
                 case 'D': return { axis: 'y', layers: [-1], angle:  Math.PI / 2 * mult, isRotation: false };
@@ -613,18 +659,15 @@
                 case 'L': return { axis: 'x', layers: [-1], angle:  Math.PI / 2 * mult, isRotation: false };
                 case 'F': return { axis: 'z', layers: [1],  angle: -Math.PI / 2 * mult, isRotation: false };
                 case 'B': return { axis: 'z', layers: [-1], angle:  Math.PI / 2 * mult, isRotation: false };
-                // Wide moves
                 case 'Uw': case 'u': return { axis: 'y', layers: [0, 1],  angle: -Math.PI / 2 * mult, isRotation: false };
                 case 'Dw': case 'd': return { axis: 'y', layers: [-1, 0], angle:  Math.PI / 2 * mult, isRotation: false };
                 case 'Rw': case 'r': return { axis: 'x', layers: [0, 1],  angle: -Math.PI / 2 * mult, isRotation: false };
                 case 'Lw': case 'l': return { axis: 'x', layers: [-1, 0], angle:  Math.PI / 2 * mult, isRotation: false };
                 case 'Fw': case 'f': return { axis: 'z', layers: [0, 1],  angle: -Math.PI / 2 * mult, isRotation: false };
                 case 'Bw': case 'b': return { axis: 'z', layers: [-1, 0], angle:  Math.PI / 2 * mult, isRotation: false };
-                // Slice moves
                 case 'M': return { axis: 'x', layers: [0], angle:  Math.PI / 2 * mult, isRotation: false };
                 case 'E': return { axis: 'y', layers: [0], angle:  Math.PI / 2 * mult, isRotation: false };
                 case 'S': return { axis: 'z', layers: [0], angle: -Math.PI / 2 * mult, isRotation: false };
-                // Whole-cube rotations
                 case 'x': return { axis: 'x', layers: [-1, 0, 1], angle: -Math.PI / 2 * mult, isRotation: true };
                 case 'y': return { axis: 'y', layers: [-1, 0, 1], angle: -Math.PI / 2 * mult, isRotation: true };
                 case 'z': return { axis: 'z', layers: [-1, 0, 1], angle: -Math.PI / 2 * mult, isRotation: true };
@@ -648,7 +691,6 @@
             }
         }
 
-        // Check if the cube is solved (each of the 6 world directions has uniform sticker colors)
         function isCubeSolved() {
             const dirs = [
                 [0, 1, 0], [0, -1, 0],
@@ -673,7 +715,6 @@
             const spec = getMoveSpec(notation);
             if (!spec) return;
 
-            // If we are in inspection or ready after scramble, a face/slice move starts the timer!
             if (appMode === '3d') {
                 if (!spec.isRotation) {
                     if (timerState === 'inspecting' || timerState === 'ready_scrambled') {
@@ -690,19 +731,18 @@
         }
 
         function worldToCamera(pt) {
-            // 1. Rotate around Y by camYaw
-            const cy = Math.cos(camYaw), sy = Math.sin(camYaw);
-            const x1 = pt[0] * cy + pt[2] * sy;
-            const y1 = pt[1];
-            const z1 = -pt[0] * sy + pt[2] * cy;
+            return [
+                camMatrix[0][0]*pt[0] + camMatrix[0][1]*pt[1] + camMatrix[0][2]*pt[2],
+                camMatrix[1][0]*pt[0] + camMatrix[1][1]*pt[1] + camMatrix[1][2]*pt[2],
+                camMatrix[2][0]*pt[0] + camMatrix[2][1]*pt[1] + camMatrix[2][2]*pt[2]
+            ];
+        }
 
-            // 2. Rotate around X by camPitch (positive pitch tilts top towards viewer)
-            const cp = Math.cos(camPitch), sp = Math.sin(camPitch);
-            const x2 = x1;
-            const y2 = y1 * cp - z1 * sp;
-            const z2 = y1 * sp + z1 * cp;
-
-            return [x2, y2, z2];
+        function applyScreenOrbitDelta(dx, dy, sensitivity = 0.008) {
+            // Rotate around screen Y axis (horizontal drag) and screen X axis (vertical drag) freely in 360°
+            const rotHorizontal = rotYMat(dx * sensitivity);
+            const rotVertical = rotXMat(dy * sensitivity);
+            camMatrix = orthonormalizeMat3(multiplyMat3(rotVertical, multiplyMat3(rotHorizontal, camMatrix)));
         }
 
         function projectPoint(camPt, width, height) {
@@ -735,7 +775,6 @@
             ctx.scale(dpr, dpr);
             ctx.clearRect(0, 0, w, h);
 
-            // Process animation queue
             if (!activeAnim && moveQueue.length > 0) {
                 const next = moveQueue.shift();
                 activeAnim = {
@@ -755,15 +794,14 @@
                     animProgress = 0;
                     update2DScrambleNet();
 
-                    // Check if cube just became solved while timer is running
                     if (appMode === '3d' && timerState === 'solving' && moveQueue.length === 0 && isCubeSolved()) {
                         finishSolve();
                     }
                 }
             }
 
-            const stickerHalf = 0.455; // Leaves crisp dark gaps between stickers like csTimer
-            const faceOffset = 1.52;   // Distance from origin to sticker plane
+            const stickerHalf = 0.455;
+            const faceOffset = 1.52;
             const polys = [];
 
             for (const c of cubies) {
@@ -782,7 +820,6 @@
                 }
 
                 for (const s of c.stickers) {
-                    // Compute 4 corners in world space
                     const center = [
                         c.pos[0] + s.n[0] * (faceOffset - 1.0),
                         c.pos[1] + s.n[1] * (faceOffset - 1.0),
@@ -817,8 +854,6 @@
 
                     const screenPts = corners.map(pt => projectPoint(pt, w, h));
                     const avgDepth = (screenPts[0][2] + screenPts[1][2] + screenPts[2][2] + screenPts[3][2]) / 4;
-
-                    // Front-facing vs back-facing classification for Painter's Algorithm
                     const isFrontFacing = normCam[2] > -0.05;
 
                     polys.push({
@@ -835,7 +870,6 @@
                 }
             }
 
-            // Sort back-to-front: back-facing stickers always drawn first, then sorted by depth descending
             polys.sort((a, b) => {
                 if (a.isFrontFacing !== b.isFrontFacing) {
                     return a.isFrontFacing ? 1 : -1;
@@ -845,7 +879,6 @@
 
             renderedPolygons = polys;
 
-            // Draw all polygons with crisp black outlines like csTimer
             ctx.lineJoin = 'round';
             for (const poly of polys) {
                 ctx.beginPath();
@@ -926,7 +959,7 @@
 
         /**
          * ============================================================================
-         * 4. MOUSE & TOUCH INTERACTION (Sticker Twist, Outside Orbit, 2-Finger Pinch Zoom)
+         * 4. MOUSE & TOUCH INTERACTION (Sticker Twist, 360° Free Orbit, 2-Finger Pinch Zoom)
          * ============================================================================
          */
         let dragState = null;
@@ -957,7 +990,6 @@
 
         canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-        // Scroll Wheel Zoom on 3D Cube Canvas
         canvas.addEventListener('wheel', (e) => {
             if (appMode !== '3d') return;
             e.preventDefault();
@@ -975,10 +1007,8 @@
                 e.preventDefault();
                 dragState = {
                     type: 'orbit',
-                    startX: e.clientX,
-                    startY: e.clientY,
-                    startYaw: camYaw,
-                    startPitch: camPitch
+                    lastX: e.clientX,
+                    lastY: e.clientY
                 };
                 return;
             }
@@ -996,10 +1026,8 @@
                 } else {
                     dragState = {
                         type: 'orbit',
-                        startX: e.clientX,
-                        startY: e.clientY,
-                        startYaw: camYaw,
-                        startPitch: camPitch
+                        lastX: e.clientX,
+                        lastY: e.clientY
                     };
                 }
             }
@@ -1007,13 +1035,16 @@
 
         window.addEventListener('mousemove', (e) => {
             if (!dragState) return;
-            const dx = e.clientX - dragState.startX;
-            const dy = e.clientY - dragState.startY;
 
             if (dragState.type === 'orbit') {
-                camYaw = dragState.startYaw + dx * 0.0075;
-                camPitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, dragState.startPitch + dy * 0.0075));
+                const dx = e.clientX - dragState.lastX;
+                const dy = e.clientY - dragState.lastY;
+                dragState.lastX = e.clientX;
+                dragState.lastY = e.clientY;
+                applyScreenOrbitDelta(dx, dy, 0.008);
             } else if (dragState.type === 'twist' && !dragState.triggered) {
+                const dx = e.clientX - dragState.startX;
+                const dy = e.clientY - dragState.startY;
                 const dist = Math.hypot(dx, dy);
                 if (dist > 14) {
                     dragState.triggered = true;
@@ -1026,7 +1057,7 @@
             dragState = null;
         });
 
-        // TOUCH EVENTS FOR IPAD & IPHONE (1-Finger Twist/Orbit + 2-Finger Pinch Zoom outside cube)
+        // TOUCH EVENTS FOR IPAD & IPHONE
         function getTouchDistance(t1, t2) {
             return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
         }
@@ -1042,7 +1073,6 @@
                 const hit1 = pickSticker(t1.clientX - rect.left, t1.clientY - rect.top);
                 const hit2 = pickSticker(t2.clientX - rect.left, t2.clientY - rect.top);
 
-                // Two fingers placed outside the cube scale/zoom the cube
                 if (!hit1 && !hit2) {
                     dragState = null;
                     pinchState = {
@@ -1070,10 +1100,8 @@
                 } else {
                     dragState = {
                         type: 'orbit',
-                        startX: t.clientX,
-                        startY: t.clientY,
-                        startYaw: camYaw,
-                        startPitch: camPitch
+                        lastX: t.clientX,
+                        lastY: t.clientY
                     };
                 }
             }
@@ -1094,13 +1122,16 @@
 
             if (e.touches.length === 1 && dragState && !pinchState) {
                 const t = e.touches[0];
-                const dx = t.clientX - dragState.startX;
-                const dy = t.clientY - dragState.startY;
 
                 if (dragState.type === 'orbit') {
-                    camYaw = dragState.startYaw + dx * 0.008;
-                    camPitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, dragState.startPitch + dy * 0.008));
+                    const dx = t.clientX - dragState.lastX;
+                    const dy = t.clientY - dragState.lastY;
+                    dragState.lastX = t.clientX;
+                    dragState.lastY = t.clientY;
+                    applyScreenOrbitDelta(dx, dy, 0.0085);
                 } else if (dragState.type === 'twist' && !dragState.triggered) {
+                    const dx = t.clientX - dragState.startX;
+                    const dy = t.clientY - dragState.startY;
                     const dist = Math.hypot(dx, dy);
                     if (dist > 14) {
                         dragState.triggered = true;
@@ -1178,8 +1209,7 @@
         }
 
         function resetCameraView() {
-            camYaw = DEFAULT_YAW;
-            camPitch = DEFAULT_PITCH;
+            camMatrix = createDefaultCamMatrix();
             userZoom = DEFAULT_ZOOM;
             setStatusPill('VIEW RESET TO DEFAULT CSTIMER PERSPECTIVE', 'neutral');
         }
@@ -2117,6 +2147,15 @@
         document.getElementById('closeKeymapBtn').addEventListener('click', closeKeymapModal);
         document.getElementById('closeKeymapFooterBtn').addEventListener('click', closeKeymapModal);
 
+        // Ensure standalone iPadOS web apps always clear the top status bar gradient
+        function applyStandaloneSafeArea() {
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+            const header = document.getElementById('appHeader');
+            if (isStandalone && header) {
+                header.style.paddingTop = 'calc(env(safe-area-inset-top, 20px) + 18px)';
+            }
+        }
+
         function updateStageDimensions() {}
         window.addEventListener('resize', updateStageDimensions);
 
@@ -2126,6 +2165,7 @@
         }
 
         window.onload = function () {
+            applyStandaloneSafeArea();
             loadAllSessions();
             initSolvedCube();
             loadNewScramble(false);
