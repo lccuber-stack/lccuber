@@ -4,9 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="LC Cuber">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#080c17">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="1024x1024" href="apple-touch-icon.png">
     <link rel="icon" type="image/png" href="apple-touch-icon.png">
     <title>LC Cuber - Virtual Cube & WCA Timer</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -38,7 +42,7 @@
         }
         @media all and (display-mode: standalone) {
             .app-header {
-                padding-top: calc(env(safe-area-inset-top, 20px) + 8px);
+                padding-top: calc(env(safe-area-inset-top, 54px) + 22px);
             }
             @media (min-width: 768px) {
                 .app-header {
@@ -206,7 +210,7 @@
         <aside id="leftSidebar" class="fixed inset-y-0 left-0 z-40 w-80 max-w-[88vw] p-3 bg-[#060913] border-r border-slate-800 transform -translate-x-full transition-transform duration-200 ease-out md:static md:translate-x-0 md:w-72 lg:w-80 md:p-0 md:bg-transparent md:border-0 shrink-0 flex flex-col gap-3 min-h-0">
             
             <!-- Mobile Drawer Close Header -->
-            <div class="flex md:hidden items-center justify-between pb-1">
+            <div class="flex md:hidden items-center justify-between pb-1" style="padding-top: env(safe-area-inset-top, 12px);">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Sessions &amp; Statistics</span>
                 <button id="closeMobileSidebarBtn" type="button" class="p-1.5 rounded-lg bg-slate-800 text-slate-300">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -774,7 +778,6 @@
         }
 
         function projectPoint(camPt, width, height) {
-            // Adjust scale smoothly for both tall portrait screens (iPhone) and wide screens (iPad/Mac)
             const minDim = Math.min(width, height);
             const aspectFactor = width < height ? 0.96 : 1.14;
             const baseScale = minDim * aspectFactor * userZoom;
@@ -1164,7 +1167,6 @@
                     const dx = t.clientX - dragState.startX;
                     const dy = t.clientY - dragState.startY;
                     const dist = Math.hypot(dx, dy);
-                    // Slightly snappier 11px threshold for iPhone touch screens
                     if (dist > 11) {
                         dragState.triggered = true;
                         triggerDragSliceTurn(dragState.hit, dx, dy);
@@ -2274,8 +2276,11 @@
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
             const header = document.getElementById('appHeader');
             if (isStandalone && header) {
-                const extraPad = window.innerWidth < 768 ? '8px' : '18px';
-                header.style.paddingTop = `calc(env(safe-area-inset-top, 20px) + ${extraPad})`;
+                if (window.innerWidth < 768) {
+                    header.style.paddingTop = 'calc(env(safe-area-inset-top, 54px) + 22px)';
+                } else {
+                    header.style.paddingTop = 'calc(env(safe-area-inset-top, 20px) + 18px)';
+                }
             }
         }
 
