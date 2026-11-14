@@ -323,7 +323,7 @@
             <!-- TIMER READOUT & STATUS PILL -->
             <div id="timerBlock" class="flex flex-col items-center justify-center z-20 mt-1 shrink-0 transition-all">
                 <div id="statusPill" class="px-3 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wider sm:tracking-widest border bg-slate-900/90 border-slate-700 text-slate-300 mb-1 transition-colors text-center max-w-[92vw]">
-                    1 FINGER: TWIST LAYER &bull; 2 FINGERS: ROTATE CUBE
+                    LEFT CLICK: TWIST LAYER &bull; RIGHT CLICK: ROTATE CUBE
                 </div>
 
                 <div id="timerDisplay" class="mono font-extrabold timer-digits-3d tracking-tight text-white leading-none select-none transition-colors">
@@ -397,7 +397,7 @@
                         <span class="sm:hidden">View</span>
                     </button>
                     <span class="hidden xl:inline-block px-2.5 py-1 rounded-lg bg-slate-900/70 border border-slate-800/80 text-[10px] text-slate-400">
-                        1-Finger / Click: Twist &bull; 2-Finger / Right-Drag: Rotate Cube &bull; Scroll: Zoom
+                        <span id="bottomControlHintText">Left Click: Twist &bull; Right Click: Rotate Cube &bull; Scroll: Zoom</span>
                     </span>
                 </div>
 
@@ -1373,6 +1373,16 @@
             } catch (err) {}
         }
 
+        function isTouchDevice() {
+            return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.matchMedia('(pointer: coarse)').matches;
+        }
+
+        function getDefault3DHintText() {
+            return isTouchDevice()
+                ? '1 FINGER: TWIST LAYER • 2 FINGERS: ROTATE CUBE'
+                : 'LEFT CLICK: TWIST LAYER • RIGHT CLICK: ROTATE CUBE';
+        }
+
         function setStatusPill(text, variant = 'neutral') {
             const pill = document.getElementById('statusPill');
             pill.textContent = text;
@@ -2198,7 +2208,7 @@
                 controlsHint.classList.remove('invisible');
                 initSolvedCube();
                 updateStageDimensions();
-                setStatusPill('1 FINGER: TWIST LAYER • 2 FINGERS: ROTATE CUBE', 'neutral');
+                setStatusPill(getDefault3DHintText(), 'neutral');
             } else {
                 modeTimerBtn.className = 'flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all bg-blue-600 text-white shadow';
                 mode3dBtn.className = 'flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all text-slate-400 hover:text-white';
@@ -2290,6 +2300,11 @@
 
         window.onload = function () {
             applyStandaloneSafeArea();
+            setStatusPill(getDefault3DHintText(), 'neutral');
+            const bottomHintEl = document.getElementById('bottomControlHintText');
+            if (bottomHintEl && isTouchDevice()) {
+                bottomHintEl.innerHTML = '1 Finger: Twist &bull; 2 Fingers: Rotate Cube';
+            }
             loadAllSessions();
             initSolvedCube();
             loadNewScramble(false);
