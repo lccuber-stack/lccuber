@@ -27,12 +27,23 @@
             margin: 0;
         }
         .app-header {
-            padding-top: 0.65rem;
-            padding-bottom: 0.65rem;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+        @media (min-width: 768px) {
+            .app-header {
+                padding-top: 0.65rem;
+                padding-bottom: 0.65rem;
+            }
         }
         @media all and (display-mode: standalone) {
             .app-header {
-                padding-top: calc(env(safe-area-inset-top, 20px) + 18px);
+                padding-top: calc(env(safe-area-inset-top, 20px) + 8px);
+            }
+            @media (min-width: 768px) {
+                .app-header {
+                    padding-top: calc(env(safe-area-inset-top, 20px) + 18px);
+                }
             }
         }
         #cubeCanvas, #rightStageSection.timer-touch-active {
@@ -89,8 +100,8 @@
         }
         /* Reliable 15s Inspection Toggle Switch */
         .toggle-track {
-            width: 36px;
-            height: 20px;
+            width: 34px;
+            height: 18px;
             background-color: #334155;
             border-radius: 9999px;
             position: relative;
@@ -98,8 +109,8 @@
             flex-shrink: 0;
         }
         .toggle-thumb {
-            width: 16px;
-            height: 16px;
+            width: 14px;
+            height: 14px;
             background-color: #ffffff;
             border-radius: 9999px;
             position: absolute;
@@ -114,23 +125,23 @@
         input:checked + .toggle-track .toggle-thumb {
             transform: translateX(16px);
         }
-        /* Giant centered timer digits when in Timer Mode */
+        /* Responsive timer digits for iPhone, iPad & Desktop */
         .timer-digits-3d {
-            font-size: clamp(3rem, 5vw, 4.5rem);
+            font-size: clamp(2.35rem, 6vw, 4.5rem);
         }
         .timer-digits-stackmat {
-            font-size: clamp(5.5rem, 14vw, 11rem);
+            font-size: clamp(4.25rem, 15vw, 11rem);
         }
     </style>
 </head>
 <body class="flex flex-col h-dvh w-screen overflow-hidden">
 
     <!-- TOP NAVIGATION HEADER -->
-    <header id="appHeader" class="app-header shrink-0 px-4 border-b border-slate-800/80 bg-[#080c17] flex items-center justify-between z-30">
+    <header id="appHeader" class="app-header shrink-0 px-2.5 sm:px-4 border-b border-slate-800/80 bg-[#080c17] flex items-center justify-between gap-1.5 z-30">
         <!-- Brand Logo -->
-        <div class="flex items-center gap-3">
-            <img src="apple-touch-icon.png" alt="LC Cuber Logo" class="w-9 h-9 rounded-xl border border-slate-700/80 object-cover shadow-inner" />
-            <div>
+        <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+            <img src="apple-touch-icon.png" alt="LC Cuber Logo" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-slate-700/80 object-cover shadow-inner" />
+            <div class="hidden sm:block">
                 <div class="flex items-center gap-2">
                     <span class="font-extrabold text-base tracking-tight text-white">LC Cuber</span>
                     <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/30">WCA 3x3</span>
@@ -140,34 +151,42 @@
         </div>
 
         <!-- Mode Switcher (3D Cube vs Timer Mode) -->
-        <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800">
-            <button id="mode3dBtn" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow">
+        <div class="flex items-center bg-slate-900/90 p-0.5 sm:p-1 rounded-xl border border-slate-800 shrink-0">
+            <button id="mode3dBtn" class="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all bg-blue-600 text-white shadow">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 16V8a2 2 0 00-1.73-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/>
                 </svg>
-                3D Cube
+                <span>3D Cube</span>
             </button>
-            <button id="modeTimerBtn" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-white">
+            <button id="modeTimerBtn" class="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all text-slate-400 hover:text-white">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
                     <circle cx="12" cy="13" r="8"/>
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4l2.5 2.5M9 2h6"/>
                 </svg>
-                Timer Mode
+                <span>Timer</span>
             </button>
         </div>
 
-        <!-- Right Controls: 15s Inspection Toggle & Keymap Modal Button -->
-        <div class="flex items-center gap-2.5">
-            <label class="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 cursor-pointer hover:border-slate-700 transition">
-                <span class="text-xs font-medium text-slate-300">15s Inspection</span>
+        <!-- Right Controls: Mobile Stats Drawer Toggle, 15s Inspection Toggle & Keymap -->
+        <div class="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            <!-- Mobile Stats & History Drawer Button (Visible only on iPhone / narrow screens < md) -->
+            <button id="toggleMobileSidebarBtn" type="button" class="md:hidden flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-[11px] font-semibold text-amber-400 transition">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+                <span id="mobileStatsBtnLabel">Stats</span>
+            </button>
+
+            <label class="flex items-center gap-1.5 sm:gap-2.5 px-2 sm:px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 cursor-pointer hover:border-slate-700 transition">
+                <span class="text-[11px] sm:text-xs font-medium text-slate-300"><span class="hidden sm:inline">15s </span>Insp.</span>
                 <input id="inspectionToggle" type="checkbox" checked class="sr-only">
                 <div class="toggle-track">
                     <div class="toggle-thumb"></div>
                 </div>
             </label>
 
-            <button id="openKeymapBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-200 transition">
+            <button id="openKeymapBtn" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-200 transition">
                 <svg class="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <rect x="2" y="4" width="20" height="16" rx="2"/>
                     <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/>
@@ -177,12 +196,25 @@
         </div>
     </header>
 
-    <!-- MAIN TWO-COLUMN WORKSPACE -->
-    <main class="flex-1 flex gap-3 p-3 overflow-hidden min-h-0">
+    <!-- MAIN TWO-COLUMN WORKSPACE (Responsive Drawer on iPhone, Fixed Sidebar on iPad/Desktop) -->
+    <main class="flex-1 flex gap-3 p-2 sm:p-3 overflow-hidden min-h-0 relative">
+
+        <!-- MOBILE BACKDROP FOR STATS DRAWER -->
+        <div id="mobileSidebarBackdrop" class="fixed inset-0 bg-slate-950/75 backdrop-blur-xs z-30 hidden md:hidden"></div>
 
         <!-- LEFT COLUMN: SESSION MANAGER, STATISTICS & SOLVE HISTORY -->
-        <aside class="w-72 sm:w-80 shrink-0 flex flex-col gap-3 min-h-0">
+        <aside id="leftSidebar" class="fixed inset-y-0 left-0 z-40 w-80 max-w-[88vw] p-3 bg-[#060913] border-r border-slate-800 transform -translate-x-full transition-transform duration-200 ease-out md:static md:translate-x-0 md:w-72 lg:w-80 md:p-0 md:bg-transparent md:border-0 shrink-0 flex flex-col gap-3 min-h-0">
             
+            <!-- Mobile Drawer Close Header -->
+            <div class="flex md:hidden items-center justify-between pb-1">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Sessions &amp; Statistics</span>
+                <button id="closeMobileSidebarBtn" type="button" class="p-1.5 rounded-lg bg-slate-800 text-slate-300">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
             <!-- SESSION STATISTICS CARD -->
             <div class="panel-card rounded-2xl p-3.5 flex flex-col gap-2.5 shrink-0">
                 <!-- Session Manager Header -->
@@ -265,15 +297,15 @@
         </aside>
 
         <!-- RIGHT COLUMN: MAIN STAGE (SCRAMBLE, TIMER, 3D CUBE / 2D NET, FLOATING CARDS) -->
-        <section id="rightStageSection" class="flex-1 panel-card rounded-2xl relative flex flex-col items-center justify-between p-4 overflow-hidden min-w-0">
+        <section id="rightStageSection" class="flex-1 panel-card rounded-2xl relative flex flex-col items-center justify-between p-2.5 sm:p-4 overflow-hidden min-w-0">
 
             <!-- TOP SCRAMBLE BAR -->
-            <div class="w-full max-w-4xl bg-slate-950/75 border border-slate-800/90 rounded-2xl px-4 py-2.5 flex items-center justify-between gap-4 z-20 shrink-0">
-                <div class="flex-1 text-center">
-                    <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">
+            <div class="w-full max-w-4xl bg-slate-950/75 border border-slate-800/90 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-4 z-20 shrink-0">
+                <div class="flex-1 text-center min-w-0">
+                    <div class="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">
                         WCA SCRAMBLE &bull; WHITE TOP &bull; GREEN FRONT
                     </div>
-                    <div id="scrambleText" class="mono text-sm sm:text-base md:text-lg font-bold text-amber-400 tracking-wide leading-snug break-words">
+                    <div id="scrambleText" class="mono text-xs sm:text-base md:text-lg font-bold text-amber-400 tracking-wide leading-snug break-words">
                         Generating scramble...
                     </div>
                 </div>
@@ -286,32 +318,34 @@
 
             <!-- TIMER READOUT & STATUS PILL -->
             <div id="timerBlock" class="flex flex-col items-center justify-center z-20 mt-1 shrink-0 transition-all">
-                <div id="statusPill" class="px-3.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest border bg-slate-900/90 border-slate-700 text-slate-300 mb-1 transition-colors">
-                    CUBE RESET TO SOLVED (WHITE TOP, GREEN FRONT)
+                <div id="statusPill" class="px-3 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wider sm:tracking-widest border bg-slate-900/90 border-slate-700 text-slate-300 mb-1 transition-colors text-center max-w-[92vw]">
+                    DRAG STICKER TO TWIST &bull; DRAG OUTSIDE TO ROTATE
                 </div>
 
                 <div id="timerDisplay" class="mono font-extrabold timer-digits-3d tracking-tight text-white leading-none select-none transition-colors">
                     0.00
                 </div>
 
-                <div id="liveMetricsRow" class="flex items-center gap-3 text-xs text-slate-400 mt-1.5 mono">
+                <div id="liveMetricsRow" class="flex items-center gap-3 text-[11px] sm:text-xs text-slate-400 mt-1 mono">
                     <span>Moves: <strong id="liveMoves" class="text-white">0</strong></span>
                     <span>&bull;</span>
                     <span>TPS: <strong id="liveTps" class="text-white">0.00</strong></span>
+                    <span class="md:hidden">&bull;</span>
+                    <span class="md:hidden">Ao5: <strong id="mobileInlineAo5" class="text-blue-400">-</strong></span>
                 </div>
 
                 <!-- Post-solve summary banner (shown when a solve finishes) -->
-                <div id="lastSolveBanner" class="hidden mt-2 px-3.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs mono">
+                <div id="lastSolveBanner" class="hidden mt-1.5 px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[11px] sm:text-xs mono text-center">
                 </div>
 
                 <!-- Timer Mode Touch & Spacebar Instructions -->
-                <div id="timerModeOverlay" class="hidden mt-6 pointer-events-none">
-                    <div class="bg-slate-900/80 border border-slate-800/90 px-5 py-3 rounded-2xl text-center max-w-md shadow-xl">
+                <div id="timerModeOverlay" class="hidden mt-4 sm:mt-6 pointer-events-none px-3">
+                    <div class="bg-slate-900/80 border border-slate-800/90 px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl text-center max-w-md shadow-xl">
                         <p class="text-xs sm:text-sm font-semibold text-slate-200 mb-1">
                             Touch &amp; hold screen or <kbd>SPACE</kbd> until green, release to start.
                         </p>
                         <p class="text-[11px] text-slate-400">
-                            With 15s Inspection enabled: Tap screen or press <kbd>SPACE</kbd> once to begin inspection, then touch &amp; hold until green and release to start. Tap anywhere or press any key to stop.
+                            With 15s Inspection enabled: Tap screen once to begin inspection, then touch &amp; hold until green and release to start. Tap anywhere to stop.
                         </p>
                     </div>
                 </div>
@@ -319,7 +353,7 @@
 
             <!-- CENTER INTERACTIVE STAGE (3D CUBE CANVAS & FLOATING CARDS) -->
             <div id="stageWrapper" class="relative flex-1 w-full flex items-center justify-center min-h-0 my-1">
-                <!-- 3D Cube Canvas (Always fills 100% of stageWrapper without inline pixel locks) -->
+                <!-- 3D Cube Canvas (Always fills 100% of stageWrapper) -->
                 <canvas id="cubeCanvas" class="absolute inset-0 w-full h-full block cursor-grab active:cursor-grabbing"></canvas>
 
                 <!-- FLOATING RIGHT CARDS: LIVE AVERAGES & 2D SCRAMBLE NET -->
@@ -347,40 +381,41 @@
                 </div>
             </div>
 
-            <!-- BOTTOM BAR: CAMERA HINT LEFT & ACTION BUTTONS CENTER -->
-            <div class="w-full flex flex-wrap items-center justify-between gap-2 pt-1 z-30 shrink-0 relative">
+            <!-- BOTTOM BAR: COMPACT MOBILE-FRIENDLY CONTROLS -->
+            <div class="w-full flex items-center justify-between gap-1.5 sm:gap-2 pt-1 z-30 shrink-0 relative" style="padding-bottom: max(0px, env(safe-area-inset-bottom));">
                 <!-- Left Reset View & Controls Hint -->
-                <div id="cubeControlsHint" class="flex items-center gap-1.5">
-                    <button id="btnResetView" type="button" class="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 active:scale-95 border border-slate-700/80 text-[11px] font-semibold text-slate-200 flex items-center gap-1.5 transition cursor-pointer pointer-events-auto shadow">
+                <div id="cubeControlsHint" class="flex items-center gap-1.5 shrink-0">
+                    <button id="btnResetView" type="button" class="px-2.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 border border-slate-700/80 text-[11px] font-semibold text-slate-200 flex items-center gap-1 transition cursor-pointer pointer-events-auto shadow">
                         <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                         </svg>
-                        Reset View
+                        <span class="hidden sm:inline">Reset View</span>
+                        <span class="sm:hidden">View</span>
                     </button>
                     <span class="hidden xl:inline-block px-2.5 py-1 rounded-lg bg-slate-900/70 border border-slate-800/80 text-[10px] text-slate-400">
                         Drag sticker: Twist &bull; Drag outside: 360° Free Orbit &bull; Pinch / Scroll: Zoom
                     </span>
                 </div>
 
-                <!-- Center Primary Action Buttons -->
-                <div class="flex items-center gap-2.5 mx-auto sm:mx-0">
-                    <button id="btnScrambleStart" type="button" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 transition cursor-pointer">
+                <!-- Center / Right Primary Action Buttons -->
+                <div class="flex items-center gap-1.5 sm:gap-2.5 ml-auto sm:mx-auto">
+                    <button id="btnScrambleStart" type="button" class="px-3 sm:px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-bold text-[11px] sm:text-xs flex items-center gap-1 sm:gap-1.5 shadow-lg shadow-emerald-500/20 transition cursor-pointer">
                         <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
                         </svg>
-                        Scramble &amp; Start
+                        <span>Scramble<span class="hidden xs:inline"> &amp; Start</span></span>
                     </button>
-                    <button id="btnResetCube" type="button" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-700 text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer">
+                    <button id="btnResetCube" type="button" class="px-2.5 sm:px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-700 text-slate-200 font-semibold text-[11px] sm:text-xs flex items-center gap-1 sm:gap-1.5 transition cursor-pointer">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                         </svg>
-                        Reset Cube
+                        <span>Reset</span>
                     </button>
-                    <button id="btnMarkDnf" type="button" class="px-3.5 py-2 rounded-xl bg-rose-950/80 hover:bg-rose-900/80 active:scale-95 border border-rose-700/60 text-rose-300 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer">
+                    <button id="btnMarkDnf" type="button" class="px-2.5 sm:px-3.5 py-2 rounded-xl bg-rose-950/80 hover:bg-rose-900/80 active:scale-95 border border-rose-700/60 text-rose-300 font-bold text-[11px] sm:text-xs flex items-center gap-1 transition cursor-pointer">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
-                        DNF
+                        <span>DNF</span>
                     </button>
                 </div>
 
@@ -506,7 +541,7 @@
         </div>
     </div>
 
-    <!-- SESSION CREATE / RENAME / DELETE MODAL (NO BROWSER ALERT/PROMPT) -->
+    <!-- SESSION CREATE / RENAME / DELETE MODAL -->
     <div id="sessionModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
         <div class="panel-card rounded-2xl max-w-sm w-full p-5 border border-slate-700 shadow-2xl">
             <h3 id="sessionModalTitle" class="text-base font-bold text-white mb-1">New Session</h3>
@@ -739,7 +774,10 @@
         }
 
         function projectPoint(camPt, width, height) {
-            const baseScale = Math.min(width, height) * 1.14 * userZoom;
+            // Adjust scale smoothly for both tall portrait screens (iPhone) and wide screens (iPad/Mac)
+            const minDim = Math.min(width, height);
+            const aspectFactor = width < height ? 0.96 : 1.14;
+            const baseScale = minDim * aspectFactor * userZoom;
             const depth = CAM_DIST - camPt[2];
             const factor = ( baseScale * 1.75 ) / Math.max(depth, 1.5);
             return [
@@ -1050,7 +1088,7 @@
             dragState = null;
         });
 
-        // TOUCH EVENTS FOR IPAD & IPHONE
+        // TOUCH EVENTS FOR IPHONE & IPAD
         function getTouchDistance(t1, t2) {
             return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
         }
@@ -1126,7 +1164,8 @@
                     const dx = t.clientX - dragState.startX;
                     const dy = t.clientY - dragState.startY;
                     const dist = Math.hypot(dx, dy);
-                    if (dist > 14) {
+                    // Slightly snappier 11px threshold for iPhone touch screens
+                    if (dist > 11) {
                         dragState.triggered = true;
                         triggerDragSliceTurn(dragState.hit, dx, dy);
                     }
@@ -1204,7 +1243,7 @@
         function resetCameraView() {
             camMatrix = createDefaultCamMatrix();
             userZoom = DEFAULT_ZOOM;
-            setStatusPill('VIEW RESET TO DEFAULT CSTIMER PERSPECTIVE', 'neutral');
+            setStatusPill('VIEW RESET TO DEFAULT PERSPECTIVE', 'neutral');
         }
 
         document.getElementById('btnResetView').addEventListener('click', (e) => {
@@ -1261,7 +1300,7 @@
 
         /**
          * ============================================================================
-         * 6. TIMER, 15s INSPECTION & IPADOS-COMPATIBLE AUDIO / VOICE ALERTS
+         * 6. TIMER, 15s INSPECTION & IOS-COMPATIBLE AUDIO / VOICE ALERTS
          * ============================================================================
          */
         let appMode = '3d';
@@ -1342,7 +1381,7 @@
         function setStatusPill(text, variant = 'neutral') {
             const pill = document.getElementById('statusPill');
             pill.textContent = text;
-            pill.className = 'px-3.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest border mb-1 transition-colors ';
+            pill.className = 'px-3 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wider sm:tracking-widest border mb-1 transition-colors text-center max-w-[92vw] ';
             if (variant === 'amber') {
                 pill.className += 'bg-amber-500/15 border-amber-500/40 text-amber-300';
             } else if (variant === 'green') {
@@ -1410,8 +1449,8 @@
 
             setStatusPill(
                 appMode === '3d'
-                    ? 'INSPECTION (15S) — MAKE ANY MOVE TO START SOLVING'
-                    : 'INSPECTION (15S) — HOLD & RELEASE SCREEN / SPACE TO START',
+                    ? 'INSPECTION (15S) — TWIST ANY LAYER TO START'
+                    : 'INSPECTION (15S) — HOLD & RELEASE TO START',
                 'amber'
             );
 
@@ -1509,7 +1548,7 @@
             if (appMode === 'timer') {
                 banner.innerHTML = `Time: <strong>${formatTimeMs(effectiveMs, finalPenalty)}</strong> &bull; Ao5: <strong>${formatTimeMs(curAo5)}</strong> &bull; Ao12: <strong>${formatTimeMs(curAo12)}</strong>`;
             } else {
-                banner.innerHTML = `Time: <strong>${formatTimeMs(effectiveMs, finalPenalty)}</strong> &bull; Moves: <strong>${moveCount}</strong> &bull; TPS: <strong>${tps.toFixed(2)}</strong> &bull; Ao5: <strong>${formatTimeMs(curAo5)}</strong> &bull; Ao12: <strong>${formatTimeMs(curAo12)}</strong>`;
+                banner.innerHTML = `Time: <strong>${formatTimeMs(effectiveMs, finalPenalty)}</strong> &bull; ${moveCount}m (${tps.toFixed(2)} TPS) &bull; Ao5: <strong>${formatTimeMs(curAo5)}</strong>`;
             }
             banner.classList.remove('hidden');
 
@@ -1568,23 +1607,37 @@
 
         /**
          * ============================================================================
-         * 7. OFFICIAL CSTIMER KEYBOARD & TOUCH TIMER MODE HANDLERS
+         * 7. MOBILE DRAWER, KEYBOARD & TOUCH TIMER MODE HANDLERS
          * ============================================================================
          */
+        const leftSidebar = document.getElementById('leftSidebar');
+        const mobileSidebarBackdrop = document.getElementById('mobileSidebarBackdrop');
+
+        function openMobileSidebar() {
+            leftSidebar.classList.remove('-translate-x-full');
+            mobileSidebarBackdrop.classList.remove('hidden');
+        }
+
+        function closeMobileSidebar() {
+            leftSidebar.classList.add('-translate-x-full');
+            mobileSidebarBackdrop.classList.add('hidden');
+        }
+
+        document.getElementById('toggleMobileSidebarBtn').addEventListener('click', openMobileSidebar);
+        document.getElementById('closeMobileSidebarBtn').addEventListener('click', closeMobileSidebar);
+        mobileSidebarBackdrop.addEventListener('click', closeMobileSidebar);
+
         const CSTIMER_KEYMAP_BY_CODE = {
-            // Outer Face Turns
             KeyJ: 'U',      KeyF: "U'",
             KeyI: 'R',      KeyK: "R'",
             KeyH: 'F',      KeyG: "F'",
             KeyS: 'D',      KeyL: "D'",
             KeyD: 'L',      KeyE: "L'",
             KeyW: 'B',      KeyO: "B'",
-            // Cube Rotations (Official csTimer: Y/T = x, N/B = x', ;/Ö = y, A = y', P = z, Q = z')
             KeyY: 'x',      KeyT: 'x',
             KeyN: "x'",     KeyB: "x'",
             Semicolon: 'y', KeyA: "y'",
             KeyP: 'z',      KeyQ: "z'",
-            // Wide & Slice Moves (Official csTimer: U = Rw, M = Rw', V = Lw, R = Lw', , = Uw, C = Uw', 5/6 = M', ./X = M)
             KeyU: 'Rw',     KeyM: "Rw'",
             KeyV: 'Lw',     KeyR: "Lw'",
             Comma: 'Uw',    KeyC: "Uw'",
@@ -1654,7 +1707,6 @@
             }
         }
 
-        // Touch & Mouse on the large right stage area in Timer Mode
         const rightStageSection = document.getElementById('rightStageSection');
         let activeTimerTouchId = null;
 
@@ -1857,6 +1909,7 @@
             const solves = session.solves;
 
             document.getElementById('solveCountBadge').textContent = `${solves.length} ${solves.length === 1 ? 'solve' : 'solves'}`;
+            document.getElementById('mobileStatsBtnLabel').textContent = `Stats (${solves.length})`;
 
             let bestSingle = null;
             for (const s of solves) {
@@ -1893,10 +1946,11 @@
             document.getElementById('floatAo12').textContent  = fmt(ao12Cur);
             document.getElementById('floatAo50').textContent  = fmt(ao50Cur);
             document.getElementById('floatAo100').textContent = fmt(ao100Cur);
+            document.getElementById('mobileInlineAo5').textContent = fmt(ao5Cur);
 
             const container = document.getElementById('solveListContainer');
             if (solves.length === 0) {
-                container.innerHTML = `<div class="text-center py-8 text-xs text-slate-500">No solves in this session yet.<br>Click <strong>Scramble &amp; Start</strong> or press <strong>SPACE</strong>!</div>`;
+                container.innerHTML = `<div class="text-center py-8 text-xs text-slate-500">No solves in this session yet.<br>Tap <strong>Scramble</strong> to begin!</div>`;
                 return;
             }
 
@@ -1929,6 +1983,7 @@
                         deleteSolveById(delBtn.getAttribute('data-delete-id'));
                         return;
                     }
+                    closeMobileSidebar();
                     openSolveDetailModal(row.getAttribute('data-solve-id'));
                 });
             });
@@ -2137,8 +2192,8 @@
             const controlsHint = document.getElementById('cubeControlsHint');
 
             if (mode === '3d') {
-                mode3dBtn.className = 'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow';
-                modeTimerBtn.className = 'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-white';
+                mode3dBtn.className = 'flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all bg-blue-600 text-white shadow';
+                modeTimerBtn.className = 'flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all text-slate-400 hover:text-white';
                 timerBlock.className = 'flex flex-col items-center justify-center z-20 mt-1 shrink-0 transition-all';
                 stageWrapper.className = 'relative flex-1 w-full flex items-center justify-center min-h-0 my-1';
                 rightStageSection.classList.remove('timer-touch-active', 'cursor-pointer');
@@ -2148,10 +2203,10 @@
                 controlsHint.classList.remove('invisible');
                 initSolvedCube();
                 updateStageDimensions();
-                setStatusPill('3D CUBE MODE — CLICK SCRAMBLE & START OR PRESS SPACE', 'neutral');
+                setStatusPill('DRAG STICKER TO TWIST • DRAG OUTSIDE TO ROTATE', 'neutral');
             } else {
-                modeTimerBtn.className = 'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow';
-                mode3dBtn.className = 'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-white';
+                modeTimerBtn.className = 'flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all bg-blue-600 text-white shadow';
+                mode3dBtn.className = 'flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all text-slate-400 hover:text-white';
                 timerBlock.className = 'absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none transition-all';
                 stageWrapper.className = 'relative flex-1 w-full flex items-center justify-center min-h-0 my-1';
                 rightStageSection.classList.add('timer-touch-active', 'cursor-pointer');
@@ -2160,7 +2215,7 @@
                 timerOverlay.classList.remove('hidden');
                 controlsHint.classList.add('invisible');
                 applyScrambleStringToCube(currentScramble);
-                setStatusPill('TIMER MODE — TAP OR HOLD SCREEN / SPACE TO START', 'neutral');
+                setStatusPill('TIMER MODE — TAP OR HOLD SCREEN TO START', 'neutral');
             }
             document.getElementById('timerDisplay').textContent = '0.00';
             setTimerDisplayColor('text-white');
@@ -2214,17 +2269,21 @@
         document.getElementById('closeKeymapBtn').addEventListener('click', closeKeymapModal);
         document.getElementById('closeKeymapFooterBtn').addEventListener('click', closeKeymapModal);
 
-        // Ensure standalone iPadOS web apps always clear the top status bar gradient
+        // Ensure standalone iOS/iPadOS web apps always clear the top status bar / Dynamic Island
         function applyStandaloneSafeArea() {
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
             const header = document.getElementById('appHeader');
             if (isStandalone && header) {
-                header.style.paddingTop = 'calc(env(safe-area-inset-top, 20px) + 18px)';
+                const extraPad = window.innerWidth < 768 ? '8px' : '18px';
+                header.style.paddingTop = `calc(env(safe-area-inset-top, 20px) + ${extraPad})`;
             }
         }
 
         function updateStageDimensions() {}
-        window.addEventListener('resize', updateStageDimensions);
+        window.addEventListener('resize', () => {
+            applyStandaloneSafeArea();
+            updateStageDimensions();
+        });
 
         function animateLoop(now) {
             render3DCube(now);
