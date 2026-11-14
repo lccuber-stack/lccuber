@@ -886,12 +886,31 @@
                     const normCam = worldToCamera(normWorld);
                     const centerCam = worldToCamera(centerWorld);
 
+                    const hitHalf = 0.505;
+                    const hitScreenPts = [
+                        [-hitHalf, -hitHalf],
+                        [ hitHalf, -hitHalf],
+                        [ hitHalf,  hitHalf],
+                        [-hitHalf,  hitHalf]
+                    ].map(([du, dv]) => {
+                        let pt = [
+                            center[0] + s.u[0] * du + s.v[0] * dv,
+                            center[1] + s.u[1] * du + s.v[1] * dv,
+                            center[2] + s.u[2] * du + s.v[2] * dv
+                        ];
+                        if (isAnimating) {
+                            pt = rotateVec3(pt, animAxis, curAngle);
+                        }
+                        return projectPoint(worldToCamera(pt), w, h);
+                    });
+
                     const screenPts = corners.map(pt => projectPoint(pt, w, h));
                     const avgDepth = (screenPts[0][2] + screenPts[1][2] + screenPts[2][2] + screenPts[3][2]) / 4;
                     const isFrontFacing = normCam[2] > -0.05;
 
                     polys.push({
                         screenPts,
+                        hitScreenPts,
                         avgDepth,
                         isFrontFacing,
                         color: s.color,
@@ -1015,7 +1034,7 @@
             for (let i = renderedPolygons.length - 1; i >= 0; i--) {
                 const poly = renderedPolygons[i];
                 if (!poly.isFrontFacing) continue;
-                if (pointInPoly(mx, my, poly.screenPts)) {
+                if (pointInPoly(mx, my, poly.hitScreenPts || poly.screenPts)) {
                     return poly;
                 }
             }
@@ -1058,11 +1077,7 @@
                         triggered: false
                     };
                 } else {
-                    dragState = {
-                        type: 'orbit',
-                        lastX: e.clientX,
-                        lastY: e.clientY
-                    };
+                    dragState = null;
                 }
             }
         });
