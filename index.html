@@ -201,7 +201,7 @@
     </header>
 
     <!-- MAIN TWO-COLUMN WORKSPACE (Responsive Drawer on iPhone, Fixed Sidebar on iPad/Desktop) -->
-    <main class="flex-1 flex gap-3 p-2 sm:p-3 overflow-hidden min-h-0 relative">
+    <main class="flex-1 flex gap-3 px-2.5 pt-2 pb-[calc(env(safe-area-inset-bottom,20px)+18px)] md:p-3 overflow-hidden min-h-0 relative">
 
         <!-- MOBILE BACKDROP FOR STATS DRAWER -->
         <div id="mobileSidebarBackdrop" class="fixed inset-0 bg-slate-950/75 backdrop-blur-xs z-30 hidden md:hidden"></div>
@@ -386,7 +386,7 @@
             </div>
 
             <!-- BOTTOM BAR: COMPACT MOBILE-FRIENDLY CONTROLS -->
-            <div class="w-full flex items-center justify-between gap-1.5 sm:gap-2 pt-1 z-30 shrink-0 relative" style="padding-bottom: max(0px, env(safe-area-inset-bottom));">
+            <div class="w-full flex items-center justify-between gap-1.5 sm:gap-2 pt-1 pb-0.5 z-30 shrink-0 relative">
                 <!-- Left Reset View & Controls Hint -->
                 <div id="cubeControlsHint" class="flex items-center gap-1.5 shrink-0">
                     <button id="btnResetView" type="button" class="px-2.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 border border-slate-700/80 text-[11px] font-semibold text-slate-200 flex items-center gap-1 transition cursor-pointer pointer-events-auto shadow">
