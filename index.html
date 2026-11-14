@@ -323,7 +323,7 @@
             <!-- TIMER READOUT & STATUS PILL -->
             <div id="timerBlock" class="flex flex-col items-center justify-center z-20 mt-1 shrink-0 transition-all">
                 <div id="statusPill" class="px-3 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wider sm:tracking-widest border bg-slate-900/90 border-slate-700 text-slate-300 mb-1 transition-colors text-center max-w-[92vw]">
-                    DRAG STICKER TO TWIST &bull; DRAG OUTSIDE TO ROTATE
+                    1 FINGER: TWIST LAYER &bull; 2 FINGERS: ROTATE CUBE
                 </div>
 
                 <div id="timerDisplay" class="mono font-extrabold timer-digits-3d tracking-tight text-white leading-none select-none transition-colors">
@@ -397,7 +397,7 @@
                         <span class="sm:hidden">View</span>
                     </button>
                     <span class="hidden xl:inline-block px-2.5 py-1 rounded-lg bg-slate-900/70 border border-slate-800/80 text-[10px] text-slate-400">
-                        Drag sticker: Twist &bull; Drag outside: 360° Free Orbit &bull; Pinch / Scroll: Zoom
+                        1-Finger / Click: Twist &bull; 2-Finger / Right-Drag: Rotate Cube &bull; Scroll: Zoom
                     </span>
                 </div>
 
@@ -1091,9 +1091,12 @@
             dragState = null;
         });
 
-        // TOUCH EVENTS FOR IPHONE & IPAD
-        function getTouchDistance(t1, t2) {
-            return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+        // TOUCH EVENTS FOR IPHONE & IPAD (1 finger = twist layer, 2 fingers anywhere = rotate whole cube, no pinch-zoom)
+        function getTouchMidpoint(t1, t2) {
+            return {
+                x: (t1.clientX + t2.clientX) / 2,
+                y: (t1.clientY + t2.clientY) / 2
+            };
         }
 
         canvas.addEventListener('touchstart', (e) => {
@@ -1101,23 +1104,18 @@
             e.preventDefault();
             const rect = canvas.getBoundingClientRect();
 
-            if (e.touches.length === 2) {
-                const t1 = e.touches[0];
-                const t2 = e.touches[1];
-                const hit1 = pickSticker(t1.clientX - rect.left, t1.clientY - rect.top);
-                const hit2 = pickSticker(t2.clientX - rect.left, t2.clientY - rect.top);
-
-                if (!hit1 && !hit2) {
-                    dragState = null;
-                    pinchState = {
-                        startDist: getTouchDistance(t1, t2),
-                        startZoom: userZoom
-                    };
-                }
+            if (e.touches.length >= 2) {
+                // Two fingers anywhere on screen (including directly over the cube) -> 360° cube orbit
+                const mid = getTouchMidpoint(e.touches[0], e.touches[1]);
+                dragState = {
+                    type: 'two_finger_orbit',
+                    lastX: mid.x,
+                    lastY: mid.y
+                };
                 return;
             }
 
-            if (e.touches.length === 1 && !pinchState) {
+            if (e.touches.length === 1) {
                 const t = e.touches[0];
                 const mx = t.clientX - rect.left;
                 const my = t.clientY - rect.top;
@@ -1132,11 +1130,7 @@
                         triggered: false
                     };
                 } else {
-                    dragState = {
-                        type: 'orbit',
-                        lastX: t.clientX,
-                        lastY: t.clientY
-                    };
+                    dragState = null;
                 }
             }
         }, { passive: false });
@@ -1145,47 +1139,46 @@
             if (appMode !== '3d') return;
             e.preventDefault();
 
-            if (e.touches.length === 2 && pinchState) {
-                const currentDist = getTouchDistance(e.touches[0], e.touches[1]);
-                if (pinchState.startDist > 10) {
-                    const scaleFactor = currentDist / pinchState.startDist;
-                    userZoom = Math.max(0.45, Math.min(2.2, pinchState.startZoom * scaleFactor));
+            if (e.touches.length >= 2) {
+                const mid = getTouchMidpoint(e.touches[0], e.touches[1]);
+                if (!dragState || dragState.type !== 'two_finger_orbit') {
+                    dragState = {
+                        type: 'two_finger_orbit',
+                        lastX: mid.x,
+                        lastY: mid.y
+                    };
+                    return;
                 }
+                const dx = mid.x - dragState.lastX;
+                const dy = mid.y - dragState.lastY;
+                dragState.lastX = mid.x;
+                dragState.lastY = mid.y;
+                applyScreenOrbitDelta(dx, dy, 0.009);
                 return;
             }
 
-            if (e.touches.length === 1 && dragState && !pinchState) {
+            if (e.touches.length === 1 && dragState && dragState.type === 'twist' && !dragState.triggered) {
                 const t = e.touches[0];
-
-                if (dragState.type === 'orbit') {
-                    const dx = t.clientX - dragState.lastX;
-                    const dy = t.clientY - dragState.lastY;
-                    dragState.lastX = t.clientX;
-                    dragState.lastY = t.clientY;
-                    applyScreenOrbitDelta(dx, dy, 0.0085);
-                } else if (dragState.type === 'twist' && !dragState.triggered) {
-                    const dx = t.clientX - dragState.startX;
-                    const dy = t.clientY - dragState.startY;
-                    const dist = Math.hypot(dx, dy);
-                    if (dist > 11) {
-                        dragState.triggered = true;
-                        triggerDragSliceTurn(dragState.hit, dx, dy);
-                    }
+                const dx = t.clientX - dragState.startX;
+                const dy = t.clientY - dragState.startY;
+                const dist = Math.hypot(dx, dy);
+                if (dist > 11) {
+                    dragState.triggered = true;
+                    triggerDragSliceTurn(dragState.hit, dx, dy);
                 }
             }
         }, { passive: false });
 
         canvas.addEventListener('touchend', (e) => {
-            if (e.touches.length < 2) {
-                pinchState = null;
-            }
             if (e.touches.length === 0) {
+                dragState = null;
+            } else if (e.touches.length === 1 && dragState && dragState.type === 'two_finger_orbit') {
+                // Prevent accidental single-finger twist when lifting one finger after a two-finger rotation
                 dragState = null;
             }
         });
 
         canvas.addEventListener('touchcancel', () => {
-            pinchState = null;
             dragState = null;
         });
 
@@ -2205,7 +2198,7 @@
                 controlsHint.classList.remove('invisible');
                 initSolvedCube();
                 updateStageDimensions();
-                setStatusPill('DRAG STICKER TO TWIST • DRAG OUTSIDE TO ROTATE', 'neutral');
+                setStatusPill('1 FINGER: TWIST LAYER • 2 FINGERS: ROTATE CUBE', 'neutral');
             } else {
                 modeTimerBtn.className = 'flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all bg-blue-600 text-white shadow';
                 mode3dBtn.className = 'flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all text-slate-400 hover:text-white';
