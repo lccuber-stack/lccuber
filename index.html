@@ -461,8 +461,8 @@
     </main>
 
     <!-- KEYMAP MODAL -->
-    <div id="keymapModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-        <div class="panel-card rounded-2xl max-w-2xl w-full p-5 border border-slate-700 shadow-2xl">
+    <div id="keymapModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4 cursor-pointer">
+        <div class="panel-card rounded-2xl max-w-2xl w-full p-5 border border-slate-700 shadow-2xl cursor-default">
             <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div>
                     <h3 class="text-base font-bold text-white">csTimer.net Keyboard Controls</h3>
@@ -514,8 +514,8 @@
     </div>
 
     <!-- SOLVE DETAILS / EDIT MODAL -->
-    <div id="solveDetailModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-        <div class="panel-card rounded-2xl max-w-md w-full p-5 border border-slate-700 shadow-2xl">
+    <div id="solveDetailModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4 cursor-pointer">
+        <div class="panel-card rounded-2xl max-w-md w-full p-5 border border-slate-700 shadow-2xl cursor-default">
             <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div>
                     <h3 id="modalSolveTitle" class="text-base font-bold text-white">Solve #1</h3>
@@ -576,8 +576,8 @@
     </div>
 
     <!-- SESSION CREATE / RENAME / DELETE MODAL -->
-    <div id="sessionModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-        <div class="panel-card rounded-2xl max-w-sm w-full p-5 border border-slate-700 shadow-2xl">
+    <div id="sessionModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4 cursor-pointer">
+        <div class="panel-card rounded-2xl max-w-sm w-full p-5 border border-slate-700 shadow-2xl cursor-default">
             <h3 id="sessionModalTitle" class="text-base font-bold text-white mb-1">New Session</h3>
             <p id="sessionModalDesc" class="text-xs text-slate-400 mb-3">Enter a name for your session:</p>
 
@@ -591,8 +591,8 @@
     </div>
 
     <!-- INSTALL APP GUIDE MODAL (iOS, iPadOS & Chrome Desktop) -->
-    <div id="installGuideModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-        <div class="panel-card rounded-2xl max-w-lg w-full p-5 border border-slate-700 shadow-2xl">
+    <div id="installGuideModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4 cursor-pointer">
+        <div class="panel-card rounded-2xl max-w-lg w-full p-5 border border-slate-700 shadow-2xl cursor-default">
             <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div class="flex items-center gap-2.5">
                     <div class="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
@@ -934,6 +934,33 @@
         document.getElementById('tabInstallChrome').addEventListener('click', () => selectInstallTab('chrome'));
         document.getElementById('closeInstallModalBtn').addEventListener('click', closeInstallGuideModal);
         document.getElementById('closeInstallFooterBtn').addEventListener('click', closeInstallGuideModal);
+
+        // Universal backdrop click-outside-to-close helper for all modals
+        function bindModalBackdropDismiss(modalId, closeFn) {
+            const modalEl = document.getElementById(modalId);
+            if (!modalEl) return;
+            const innerCard = modalEl.querySelector('.panel-card');
+            if (innerCard) {
+                innerCard.addEventListener('mousedown', (e) => e.stopPropagation());
+                innerCard.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+                innerCard.addEventListener('click', (e) => e.stopPropagation());
+            }
+            const handleBackdropDismiss = (e) => {
+                if (e.target === modalEl) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    closeFn();
+                }
+            };
+            modalEl.addEventListener('mousedown', handleBackdropDismiss);
+            modalEl.addEventListener('touchstart', handleBackdropDismiss, { passive: false });
+            modalEl.addEventListener('click', handleBackdropDismiss);
+        }
+
+        bindModalBackdropDismiss('keymapModal', closeKeymapModal);
+        bindModalBackdropDismiss('solveDetailModal', closeSolveDetailModal);
+        bindModalBackdropDismiss('sessionModal', closeSessionModal);
+        bindModalBackdropDismiss('installGuideModal', closeInstallGuideModal);
 
         /**
          * ============================================================================
