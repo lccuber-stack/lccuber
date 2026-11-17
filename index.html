@@ -15,6 +15,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2">
     <link rel="apple-touch-icon" sizes="1024x1024" href="apple-touch-icon.png?v=2">
     <link rel="icon" type="image/png" href="apple-touch-icon.png?v=2">
+    <link id="pwaManifestLink" rel="manifest" href="">
     <title>LC Cuber - Virtual Cube & WCA Timer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -45,11 +46,11 @@
         }
         @media all and (display-mode: standalone) {
             .app-header {
-                padding-top: calc(env(safe-area-inset-top, 64px) + 26px);
+                padding-top: calc(env(safe-area-inset-top, 54px) + 28px);
             }
             @media (min-width: 768px) {
                 .app-header {
-                    padding-top: calc(env(safe-area-inset-top, 24px) + 20px);
+                    padding-top: calc(env(safe-area-inset-top, 20px) + 22px);
                 }
             }
         }
@@ -172,22 +173,33 @@
             </div>
         </div>
 
-        <!-- Mode Switcher (3D Cube vs Timer Mode) -->
-        <div class="flex items-center bg-slate-900/90 p-0.5 sm:p-1 rounded-xl border border-slate-800 shrink-0">
-            <button id="mode3dBtn" class="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all bg-blue-600 text-white shadow">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 16V8a2 2 0 00-1.73-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/>
+        <!-- Center Cluster: First-Time Install App Button (to the left of 3D Cube switch) + Mode Switcher -->
+        <div class="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            <!-- Install App Button (Visible ONLY on very first visit and if not in standalone mode) -->
+            <button id="installAppBtn" type="button" title="Install LC Cuber as an App" class="hidden flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 border border-emerald-500/40 text-[11px] sm:text-xs font-bold text-emerald-300 transition cursor-pointer shadow-sm">
+                <svg class="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                 </svg>
-                <span>3D Cube</span>
+                <span>Install<span class="hidden sm:inline"> App</span></span>
             </button>
-            <button id="modeTimerBtn" class="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all text-slate-400 hover:text-white">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-                    <circle cx="12" cy="13" r="8"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4l2.5 2.5M9 2h6"/>
-                </svg>
-                <span>Timer</span>
-            </button>
+
+            <!-- Mode Switcher (3D Cube vs Timer Mode) -->
+            <div class="flex items-center bg-slate-900/90 p-0.5 sm:p-1 rounded-xl border border-slate-800 shrink-0">
+                <button id="mode3dBtn" class="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all bg-blue-600 text-white shadow">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 16V8a2 2 0 00-1.73-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/>
+                    </svg>
+                    <span>3D Cube</span>
+                </button>
+                <button id="modeTimerBtn" class="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all text-slate-400 hover:text-white">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                        <circle cx="12" cy="13" r="8"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4l2.5 2.5M9 2h6"/>
+                    </svg>
+                    <span>Timer</span>
+                </button>
+            </div>
         </div>
 
         <!-- Right Controls: Mobile Stats Drawer Toggle, 15s Inspection Toggle & Keymap -->
@@ -578,7 +590,351 @@
         </div>
     </div>
 
+    <!-- INSTALL APP GUIDE MODAL (iOS, iPadOS & Chrome Desktop) -->
+    <div id="installGuideModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="panel-card rounded-2xl max-w-lg w-full p-5 border border-slate-700 shadow-2xl">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-white">Install LC Cuber</h3>
+                        <p class="text-xs text-slate-400">Run fullscreen with offline persistence &amp; auto-updates</p>
+                    </div>
+                </div>
+                <button id="closeInstallModalBtn" type="button" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Platform Tabs -->
+            <div class="grid grid-cols-3 gap-1.5 bg-slate-900/95 p-1 rounded-xl border border-slate-800 my-4">
+                <button id="tabInstallIos" type="button" class="py-1.5 px-2 rounded-lg text-xs font-bold transition bg-blue-600 text-white shadow">
+                    iPhone (iOS)
+                </button>
+                <button id="tabInstallIpad" type="button" class="py-1.5 px-2 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white">
+                    iPad (iPadOS)
+                </button>
+                <button id="tabInstallChrome" type="button" class="py-1.5 px-2 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white">
+                    Chrome Desktop
+                </button>
+            </div>
+
+            <!-- iPhone (iOS) Instructions -->
+            <div id="panelInstallIos" class="space-y-3 text-xs text-slate-300">
+                <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
+                    <div class="flex items-start gap-3">
+                        <span class="w-5 h-5 rounded-full bg-blue-600/25 border border-blue-500/40 text-blue-400 font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
+                        <div>
+                            <p class="font-semibold text-white">Open in Safari</p>
+                            <p class="text-slate-400 mt-0.5">Make sure you are viewing <span class="text-amber-400 font-medium">LC Cuber</span> in Apple Safari on your iPhone.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="w-5 h-5 rounded-full bg-blue-600/25 border border-blue-500/40 text-blue-400 font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
+                        <div>
+                            <p class="font-semibold text-white flex items-center gap-1.5">
+                                Tap the Share button
+                                <span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-blue-400">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                    </svg>
+                                </span>
+                            </p>
+                            <p class="text-slate-400 mt-0.5">Located in the bottom toolbar (or top bar depending on your Safari layout).</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="w-5 h-5 rounded-full bg-blue-600/25 border border-blue-500/40 text-blue-400 font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
+                        <div>
+                            <p class="font-semibold text-white">Scroll down &amp; tap "Add to Home Screen"</p>
+                            <p class="text-slate-400 mt-0.5">Confirm the name <strong class="text-white">LC Cuber</strong> and tap <strong class="text-emerald-400">Add</strong> in the top right corner.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- iPad (iPadOS) Instructions -->
+            <div id="panelInstallIpad" class="hidden space-y-3 text-xs text-slate-300">
+                <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
+                    <div class="flex items-start gap-3">
+                        <span class="w-5 h-5 rounded-full bg-blue-600/25 border border-blue-500/40 text-blue-400 font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
+                        <div>
+                            <p class="font-semibold text-white">Open in Safari on iPad</p>
+                            <p class="text-slate-400 mt-0.5">Ensure you are visiting the page in Safari on iPadOS.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="w-5 h-5 rounded-full bg-blue-600/25 border border-blue-500/40 text-blue-400 font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
+                        <div>
+                            <p class="font-semibold text-white flex items-center gap-1.5">
+                                Tap the Share icon in the top-right address bar
+                                <span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-blue-400">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                    </svg>
+                                </span>
+                            </p>
+                            <p class="text-slate-400 mt-0.5">Found right next to the URL field at the top of your iPad screen.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="w-5 h-5 rounded-full bg-blue-600/25 border border-blue-500/40 text-blue-400 font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
+                        <div>
+                            <p class="font-semibold text-white">Select "Add to Home Screen"</p>
+                            <p class="text-slate-400 mt-0.5">Tap <strong class="text-emerald-400">Add</strong> to place LC Cuber on your iPad Home Screen &amp; Dock.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chrome Desktop Instructions -->
+            <div id="panelInstallChrome" class="hidden space-y-3 text-xs text-slate-300">
+                <div id="chromeDirectInstallBanner" class="hidden bg-emerald-500/15 border border-emerald-500/35 rounded-xl p-3 flex items-center justify-between gap-3">
+                    <div>
+                        <p class="font-bold text-emerald-300">One-Click Desktop Install Ready</p>
+                        <p class="text-[11px] text-emerald-200/80">Your browser supports direct desktop app installation.</p>
+                    </div>
+                    <button id="modalTriggerChromeInstallBtn" type="button" class="shrink-0 px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow transition">
+                        Install Now
+                    </button>
+                </div>
+
+                <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
+                    <div class="flex items-start gap-3">
+                        <span class="w-5 h-5 rounded-full bg-blue-600/25 border border-blue-500/40 text-blue-400 font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
+                        <div>
+                            <p class="font-semibold text-white">Click the Install icon in Chrome's address bar</p>
+                            <p class="text-slate-400 mt-0.5">Look for the small monitor/download icon on the right side of the URL bar and click <strong class="text-white">Install</strong>.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="w-5 h-5 rounded-full bg-blue-600/25 border border-blue-500/40 text-blue-400 font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
+                        <div>
+                            <p class="font-semibold text-white">Or use the Chrome Menu (<span class="mono">⋮</span>)</p>
+                            <p class="text-slate-400 mt-0.5">Click <strong class="text-white">⋮</strong> (top right) &rarr; <strong class="text-white">Cast, save, and share</strong> &rarr; <strong class="text-emerald-400">Install LC Cuber...</strong> (or <em>Create shortcut...</em> with <em>Open as window</em> checked).</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+                <span>All solves, settings &amp; PBs are saved automatically.</span>
+                <button id="closeInstallFooterBtn" type="button" class="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white">Done</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        /**
+         * ============================================================================
+         * 0. PERSISTENT USER SETTINGS, WEB APP MANIFEST & FIRST-VISIT INSTALL BUTTON
+         * ============================================================================
+         */
+        const SETTINGS_STORAGE_KEY = 'lc_cube_settings_v1';
+        const INSTALL_SEEN_KEY = 'lc_cube_install_seen_v1';
+
+        let deferredInstallPrompt = null;
+
+        function isAppRunningStandalone() {
+            return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        }
+
+        function loadUserSettings() {
+            try {
+                const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                return parsed && typeof parsed === 'object' ? parsed : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function saveUserSettings() {
+            try {
+                const payload = {
+                    inspectionEnabled: Boolean(inspectionEnabled),
+                    appMode: appMode === 'timer' ? 'timer' : '3d',
+                    activeSessionId: sessionsData.activeSessionId,
+                    cameraView: {
+                        camMatrix: camMatrix,
+                        userZoom: userZoom
+                    }
+                };
+                localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(payload));
+            } catch (e) {}
+        }
+
+        function markInstallButtonSeen() {
+            try {
+                localStorage.setItem(INSTALL_SEEN_KEY, 'true');
+            } catch (e) {}
+            updateInstallButtonVisibility();
+        }
+
+        function hasSeenInstallButton() {
+            try {
+                return localStorage.getItem(INSTALL_SEEN_KEY) === 'true';
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function initDynamicPwaManifestAndSw() {
+            try {
+                const baseUrl = window.location.href.split('#')[0].split('?')[0];
+                const iconUrl = new URL('apple-touch-icon.png?v=2', baseUrl).href;
+
+                const manifestObj = {
+                    name: 'LC Cuber - Virtual Cube & WCA Timer',
+                    short_name: 'LC Cuber',
+                    description: 'Virtual 3x3 Speedcube & Official WCA Timer with 15s Inspection and Session Statistics',
+                    start_url: baseUrl,
+                    scope: new URL('.', baseUrl).href,
+                    display: 'standalone',
+                    orientation: 'any',
+                    background_color: '#060913',
+                    theme_color: '#080c17',
+                    icons: [
+                        { src: iconUrl, sizes: '180x180', type: 'image/png', purpose: 'any' },
+                        { src: iconUrl, sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+                        { src: iconUrl, sizes: '1024x1024', type: 'image/png', purpose: 'any' }
+                    ]
+                };
+
+                const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
+                const manifestUrl = URL.createObjectURL(manifestBlob);
+                const linkEl = document.getElementById('pwaManifestLink');
+                if (linkEl) linkEl.href = manifestUrl;
+            } catch (e) {}
+
+            // Register lightweight Service Worker over HTTPS/localhost so Chrome enables native Desktop App install
+            if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
+                try {
+                    const swCode = `
+                        self.addEventListener('install', (e) => self.skipWaiting());
+                        self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+                        self.addEventListener('fetch', (e) => {
+                            e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+                        });
+                    `;
+                    const swBlob = new Blob([swCode], { type: 'application/javascript' });
+                    const swUrl = URL.createObjectURL(swBlob);
+                    navigator.serviceWorker.register(swUrl).catch(() => {});
+                } catch (e) {}
+            }
+        }
+
+        function updateInstallButtonVisibility() {
+            const btn = document.getElementById('installAppBtn');
+            if (!btn) return;
+            // Visible ONLY on the very first visit and when not running in standalone mode
+            if (isAppRunningStandalone() || hasSeenInstallButton()) {
+                btn.classList.add('hidden');
+            } else {
+                btn.classList.remove('hidden');
+            }
+        }
+
+        function detectPreferredInstallTab() {
+            const ua = navigator.userAgent || '';
+            const isIpad = /iPad/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const isIphone = /iPhone|iPod/.test(ua);
+            if (isIpad) return 'ipad';
+            if (isIphone) return 'ios';
+            return 'chrome';
+        }
+
+        function selectInstallTab(tab) {
+            const tabs = {
+                ios: { btn: document.getElementById('tabInstallIos'), panel: document.getElementById('panelInstallIos') },
+                ipad: { btn: document.getElementById('tabInstallIpad'), panel: document.getElementById('panelInstallIpad') },
+                chrome: { btn: document.getElementById('tabInstallChrome'), panel: document.getElementById('panelInstallChrome') }
+            };
+
+            Object.entries(tabs).forEach(([key, item]) => {
+                if (key === tab) {
+                    item.btn.className = 'py-1.5 px-2 rounded-lg text-xs font-bold transition bg-blue-600 text-white shadow';
+                    item.panel.classList.remove('hidden');
+                } else {
+                    item.btn.className = 'py-1.5 px-2 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white';
+                    item.panel.classList.add('hidden');
+                }
+            });
+
+            const directBanner = document.getElementById('chromeDirectInstallBanner');
+            if (directBanner) {
+                if (tab === 'chrome' && deferredInstallPrompt) {
+                    directBanner.classList.remove('hidden');
+                } else {
+                    directBanner.classList.add('hidden');
+                }
+            }
+        }
+
+        function openInstallGuideModal(forcedTab = null) {
+            markInstallButtonSeen();
+            selectInstallTab(forcedTab || detectPreferredInstallTab());
+            const modal = document.getElementById('installGuideModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeInstallGuideModal() {
+            markInstallButtonSeen();
+            const modal = document.getElementById('installGuideModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        async function triggerNativeOrGuideInstall() {
+            markInstallButtonSeen();
+            if (deferredInstallPrompt) {
+                try {
+                    deferredInstallPrompt.prompt();
+                    const choice = await deferredInstallPrompt.userChoice;
+                    if (choice && choice.outcome === 'accepted') {
+                        deferredInstallPrompt = null;
+                        closeInstallGuideModal();
+                        return;
+                    }
+                } catch (err) {}
+            }
+            openInstallGuideModal();
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredInstallPrompt = e;
+            updateInstallButtonVisibility();
+            const directBanner = document.getElementById('chromeDirectInstallBanner');
+            if (directBanner) directBanner.classList.remove('hidden');
+        });
+
+        window.addEventListener('appinstalled', () => {
+            deferredInstallPrompt = null;
+            markInstallButtonSeen();
+            closeInstallGuideModal();
+            setStatusPill('LC CUBER INSTALLED AS APP!', 'green');
+        });
+
+        document.getElementById('installAppBtn').addEventListener('click', (e) => {
+            e.currentTarget.blur();
+            triggerNativeOrGuideInstall();
+        });
+        document.getElementById('modalTriggerChromeInstallBtn').addEventListener('click', triggerNativeOrGuideInstall);
+        document.getElementById('tabInstallIos').addEventListener('click', () => selectInstallTab('ios'));
+        document.getElementById('tabInstallIpad').addEventListener('click', () => selectInstallTab('ipad'));
+        document.getElementById('tabInstallChrome').addEventListener('click', () => selectInstallTab('chrome'));
+        document.getElementById('closeInstallModalBtn').addEventListener('click', closeInstallGuideModal);
+        document.getElementById('closeInstallFooterBtn').addEventListener('click', closeInstallGuideModal);
+
         /**
          * ============================================================================
          * 1. COLOR SCHEME (WCA Standard: White Top, Green Front, Orange Left, Red Right, Blue Back, Yellow Down)
@@ -1068,6 +1424,7 @@
             e.preventDefault();
             const zoomStep = -e.deltaY * 0.0012;
             userZoom = Math.max(0.45, Math.min(2.2, userZoom + zoomStep));
+            saveUserSettings();
         }, { passive: false });
 
         // MOUSE EVENTS (Mac / Desktop)
@@ -1124,6 +1481,9 @@
         });
 
         window.addEventListener('mouseup', () => {
+            if (dragState && dragState.type === 'orbit') {
+                saveUserSettings();
+            }
             dragState = null;
         });
 
@@ -1206,6 +1566,9 @@
         }, { passive: false });
 
         canvas.addEventListener('touchend', (e) => {
+            if (dragState && dragState.type === 'two_finger_orbit') {
+                saveUserSettings();
+            }
             if (e.touches.length === 0) {
                 dragState = null;
             } else if (e.touches.length === 1 && dragState && dragState.type === 'two_finger_orbit') {
@@ -1274,6 +1637,7 @@
         function resetCameraView() {
             camMatrix = createDefaultCamMatrix();
             userZoom = DEFAULT_ZOOM;
+            saveUserSettings();
             setStatusPill('VIEW RESET TO DEFAULT PERSPECTIVE', 'neutral');
         }
 
@@ -1803,6 +2167,10 @@
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
             if (!document.getElementById('sessionModal').classList.contains('hidden')) return;
             if (!document.getElementById('solveDetailModal').classList.contains('hidden')) return;
+            if (!document.getElementById('installGuideModal').classList.contains('hidden')) {
+                if (e.code === 'Escape') closeInstallGuideModal();
+                return;
+            }
             if (!document.getElementById('keymapModal').classList.contains('hidden')) {
                 if (e.code === 'Escape') closeKeymapModal();
                 return;
@@ -1854,6 +2222,7 @@
          * ============================================================================
          */
         const STORAGE_KEY = 'lc_cuber_sessions_v2';
+        const PREV_STORAGE_KEY = 'lc_cube_sessions_v2';
         const LEGACY_KEY = 'lc_cuber_solves_v1';
 
         let sessionsData = {
@@ -1865,11 +2234,12 @@
 
         function loadAllSessions() {
             try {
-                const raw = localStorage.getItem(STORAGE_KEY);
+                const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(PREV_STORAGE_KEY);
                 if (raw) {
                     const parsed = JSON.parse(raw);
                     if (parsed && Array.isArray(parsed.sessions) && parsed.sessions.length > 0) {
                         sessionsData = parsed;
+                        saveAllSessions();
                         return;
                     }
                 }
@@ -1887,6 +2257,7 @@
         function saveAllSessions() {
             try {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionsData));
+                localStorage.setItem(PREV_STORAGE_KEY, JSON.stringify(sessionsData));
             } catch (err) {}
         }
 
@@ -2120,6 +2491,7 @@
                 }
             }
             saveAllSessions();
+            saveUserSettings();
             renderStatsAndHistory();
             closeSessionModal();
         });
@@ -2132,6 +2504,7 @@
         document.getElementById('sessionSelect').addEventListener('change', (e) => {
             sessionsData.activeSessionId = e.target.value;
             saveAllSessions();
+            saveUserSettings();
             renderStatsAndHistory();
             e.target.blur();
         });
@@ -2221,10 +2594,13 @@
         const mode3dBtn = document.getElementById('mode3dBtn');
         const modeTimerBtn = document.getElementById('modeTimerBtn');
 
-        function setAppMode(mode) {
+        function setAppMode(mode, persist = true) {
             stopAllTimers();
             timerState = 'idle';
             appMode = mode;
+            if (persist) {
+                saveUserSettings();
+            }
 
             const timerBlock = document.getElementById('timerBlock');
             const stageWrapper = document.getElementById('stageWrapper');
@@ -2262,11 +2638,12 @@
             setTimerDisplayColor('text-white');
         }
 
-        mode3dBtn.addEventListener('click', () => setAppMode('3d'));
-        modeTimerBtn.addEventListener('click', () => setAppMode('timer'));
+        mode3dBtn.addEventListener('click', () => setAppMode('3d', true));
+        modeTimerBtn.addEventListener('click', () => setAppMode('timer', true));
 
         document.getElementById('inspectionToggle').addEventListener('change', (e) => {
             inspectionEnabled = e.target.checked;
+            saveUserSettings();
             e.target.blur();
         });
 
@@ -2312,15 +2689,16 @@
 
         // Ensure standalone iOS/iPadOS web apps always clear the top status bar / Dynamic Island
         function applyStandaloneSafeArea() {
-            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+            const isStandalone = isAppRunningStandalone();
             const header = document.getElementById('appHeader');
             if (isStandalone && header) {
                 if (window.innerWidth < 768) {
-                    header.style.paddingTop = 'calc(env(safe-area-inset-top, 54px) + 22px)';
+                    header.style.paddingTop = 'calc(env(safe-area-inset-top, 54px) + 28px)';
                 } else {
-                    header.style.paddingTop = 'calc(env(safe-area-inset-top, 20px) + 18px)';
+                    header.style.paddingTop = 'calc(env(safe-area-inset-top, 20px) + 22px)';
                 }
             }
+            updateInstallButtonVisibility();
         }
 
         function updateStageDimensions() {}
@@ -2334,7 +2712,7 @@
             requestAnimationFrame(animateLoop);
         }
 
-        // Automatic update check on launch & app resume (preserves all localStorage solves & PBs)
+        // Automatic update check on launch & app resume (preserves all localStorage solves, settings & PBs)
         let initialPageSignature = null;
         let isCheckingUpdate = false;
 
@@ -2397,17 +2775,44 @@
         });
 
         window.onload = function () {
+            initDynamicPwaManifestAndSw();
             checkForAppUpdate(true);
             applyStandaloneSafeArea();
-            setStatusPill(getDefault3DHintText(), 'neutral');
+
+            loadAllSessions();
+            const savedSettings = loadUserSettings();
+
+            if (savedSettings) {
+                if (typeof savedSettings.inspectionEnabled === 'boolean') {
+                    inspectionEnabled = savedSettings.inspectionEnabled;
+                    document.getElementById('inspectionToggle').checked = inspectionEnabled;
+                }
+                if (savedSettings.activeSessionId && sessionsData.sessions.some(s => s.id === savedSettings.activeSessionId)) {
+                    sessionsData.activeSessionId = savedSettings.activeSessionId;
+                }
+                if (savedSettings.cameraView) {
+                    if (Array.isArray(savedSettings.cameraView.camMatrix) && savedSettings.cameraView.camMatrix.length === 3) {
+                        camMatrix = savedSettings.cameraView.camMatrix;
+                    }
+                    if (typeof savedSettings.cameraView.userZoom === 'number' && !isNaN(savedSettings.cameraView.userZoom)) {
+                        userZoom = Math.max(0.45, Math.min(2.2, savedSettings.cameraView.userZoom));
+                    }
+                }
+            }
+
             const bottomHintEl = document.getElementById('bottomControlHintText');
             if (bottomHintEl && isTouchDevice()) {
                 bottomHintEl.innerHTML = '1 Finger: Twist &bull; 2 Fingers: Rotate Cube';
             }
-            loadAllSessions();
+
             initSolvedCube();
             loadNewScramble(false);
             renderStatsAndHistory();
+
+            const initialMode = savedSettings && savedSettings.appMode === 'timer' ? 'timer' : '3d';
+            setAppMode(initialMode, false);
+            saveUserSettings();
+
             updateStageDimensions();
             requestAnimationFrame(animateLoop);
         };
